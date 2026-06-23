@@ -10,6 +10,10 @@
     "db:test": "node test-db.js",
     "db:init": "docker exec -i sso_postgres_db psql -U appuser -d SSO < src/db/init.sql",
     "db:migrate-riesgos": "docker exec -i sso_postgres_db psql -U appuser -d SSO < src/db/migrate_riesgos.sql",
+    "db:migrate-peligros": "docker exec -i sso_postgres_db psql -U appuser -d SSO < src/db/migrate_peligros.sql",
+    "db:migrate-riesgo-peligro": "docker exec -i sso_postgres_db psql -U appuser -d SSO < src/db/migrate_riesgo_peligro_relacion.sql",
+    "db:migrate-estructura": "docker exec -i sso_postgres_db psql -U appuser -d SSO < src/db/migrate_estructura_organizacional.sql",
+    "db:migrate-matriz": "docker exec -i sso_postgres_db psql -U appuser -d SSO < src/db/migrate_matriz_jerarquica.sql",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down"
   },

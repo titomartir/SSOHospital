@@ -4,12 +4,18 @@ import pool from '../db/connection.js'
 const toFrontend = (row) => ({
   id: row.id,
   fecha: row.fecha instanceof Date ? row.fecha.toISOString().split('T')[0] : row.fecha,
+  subDireccionId: row.sub_direccion_id,
+  subDireccion: row.sub_direccion,
+  departamentoId: row.departamento_id,
   departamento: row.departamento,
+  servicioId: row.servicio_id,
+  servicio: row.servicio,
   puesto: row.puesto,
   ubicacion: row.ubicacion,
-  actividad: row.actividad,
-  peligro: row.peligro,
+  riesgoId: row.riesgo_id,
   riesgo: row.riesgo,
+  peligroId: row.peligro_id,
+  peligro: row.peligro,
   probabilidad: row.probabilidad,
   consecuencia: row.consecuencia,
   nivel: row.nivel,
@@ -20,40 +26,77 @@ const toFrontend = (row) => ({
 
 export const matrizModel = {
   async getAll() {
-    const result = await pool.query('SELECT * FROM matriz_riesgos ORDER BY id DESC')
+    const result = await pool.query(
+      `SELECT mr.*, sd.nombre AS sub_direccion, d.nombre AS departamento,
+              s.nombre AS servicio, r.nombre AS riesgo, p.nombre AS peligro
+       FROM matriz_riesgos mr
+       LEFT JOIN sub_direcciones sd ON sd.id = mr.sub_direccion_id
+       LEFT JOIN departamentos d ON d.id = mr.departamento_id
+       LEFT JOIN servicios s ON s.id = mr.servicio_id
+       LEFT JOIN riesgos r ON r.id = mr.riesgo_id
+       LEFT JOIN peligros p ON p.id = mr.peligro_id
+       ORDER BY mr.id DESC`
+    )
     return result.rows.map(toFrontend)
   },
 
   async create(data) {
-    const { fecha, departamento, puesto, ubicacion, actividad, peligro, riesgo,
+    const { fecha, subDireccionId, departamentoId, servicioId, puesto, ubicacion, peligroId, riesgoId,
       probabilidad, consecuencia, nivel, clasificacion, medidasPrev, observaciones } = data
 
     const result = await pool.query(
       `INSERT INTO matriz_riesgos
-        (fecha, departamento, puesto, ubicacion, actividad, peligro, riesgo,
+        (fecha, sub_direccion_id, departamento_id, servicio_id, puesto, ubicacion, peligro_id, riesgo_id,
          probabilidad, consecuencia, nivel, clasificacion, medidas_prev, observaciones)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
        RETURNING *`,
-      [fecha, departamento, puesto, ubicacion, actividad, peligro, riesgo,
-       probabilidad, consecuencia, nivel, clasificacion, medidasPrev, observaciones ?? '']
+      [fecha, Number(subDireccionId), Number(departamentoId), Number(servicioId), puesto?.trim() || null,
+       ubicacion, Number(peligroId), Number(riesgoId), Number(probabilidad), Number(consecuencia),
+       nivel, clasificacion, medidasPrev, observaciones ?? '']
     )
-    return toFrontend(result.rows[0])
+    const fullResult = await pool.query(
+      `SELECT mr.*, sd.nombre AS sub_direccion, d.nombre AS departamento,
+              s.nombre AS servicio, r.nombre AS riesgo, p.nombre AS peligro
+       FROM matriz_riesgos mr
+       LEFT JOIN sub_direcciones sd ON sd.id = mr.sub_direccion_id
+       LEFT JOIN departamentos d ON d.id = mr.departamento_id
+       LEFT JOIN servicios s ON s.id = mr.servicio_id
+       LEFT JOIN riesgos r ON r.id = mr.riesgo_id
+       LEFT JOIN peligros p ON p.id = mr.peligro_id
+       WHERE mr.id = $1`,
+      [result.rows[0].id]
+    )
+    return toFrontend(fullResult.rows[0])
   },
 
   async update(id, data) {
-    const { fecha, departamento, puesto, ubicacion, actividad, peligro, riesgo,
+    const { fecha, subDireccionId, departamentoId, servicioId, puesto, ubicacion, peligroId, riesgoId,
       probabilidad, consecuencia, nivel, clasificacion, medidasPrev, observaciones } = data
 
     const result = await pool.query(
       `UPDATE matriz_riesgos SET
-        fecha=$1, departamento=$2, puesto=$3, ubicacion=$4, actividad=$5, peligro=$6,
-        riesgo=$7, probabilidad=$8, consecuencia=$9, nivel=$10, clasificacion=$11,
-        medidas_prev=$12, observaciones=$13
-       WHERE id=$14 RETURNING *`,
-      [fecha, departamento, puesto, ubicacion, actividad, peligro, riesgo,
-       probabilidad, consecuencia, nivel, clasificacion, medidasPrev, observaciones ?? '', id]
+        fecha=$1, sub_direccion_id=$2, departamento_id=$3, servicio_id=$4, puesto=$5, ubicacion=$6, peligro_id=$7,
+        riesgo_id=$8, probabilidad=$9, consecuencia=$10, nivel=$11, clasificacion=$12,
+        medidas_prev=$13, observaciones=$14
+       WHERE id=$15 RETURNING *`,
+      [fecha, Number(subDireccionId), Number(departamentoId), Number(servicioId), puesto?.trim() || null,
+       ubicacion, Number(peligroId), Number(riesgoId), Number(probabilidad), Number(consecuencia),
+       nivel, clasificacion, medidasPrev, observaciones ?? '', id]
     )
-    return result.rows[0] ? toFrontend(result.rows[0]) : null
+    if (!result.rows[0]) return null
+    const fullResult = await pool.query(
+      `SELECT mr.*, sd.nombre AS sub_direccion, d.nombre AS departamento,
+              s.nombre AS servicio, r.nombre AS riesgo, p.nombre AS peligro
+       FROM matriz_riesgos mr
+       LEFT JOIN sub_direcciones sd ON sd.id = mr.sub_direccion_id
+       LEFT JOIN departamentos d ON d.id = mr.departamento_id
+       LEFT JOIN servicios s ON s.id = mr.servicio_id
+       LEFT JOIN riesgos r ON r.id = mr.riesgo_id
+       LEFT JOIN peligros p ON p.id = mr.peligro_id
+       WHERE mr.id = $1`,
+      [id]
+    )
+    return toFrontend(fullResult.rows[0])
   },
 
   async remove(id) {

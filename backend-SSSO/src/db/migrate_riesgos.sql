@@ -4,11 +4,15 @@ CREATE TABLE IF NOT EXISTS riesgos (
     nombre VARCHAR(200) UNIQUE NOT NULL
 );
 
+ALTER TABLE riesgos
+ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+ALTER TABLE riesgos
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
 INSERT INTO riesgos (nombre) VALUES
-('Contagio de VIH, Hepatitis B y C'),
-('Infecciones respiratorias ocupacionales'),
-('Irritación dérmica y respiratoria'),
-('Descarga eléctrica')
+('Riesgo Químico'),
+('Riesgo Biológico')
 ON CONFLICT (nombre) DO NOTHING;
 
 SELECT setval('riesgos_id_seq', COALESCE((SELECT MAX(id)+1 FROM riesgos), 1), false);
