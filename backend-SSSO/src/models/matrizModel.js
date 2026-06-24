@@ -10,7 +10,10 @@ const toFrontend = (row) => ({
   departamento: row.departamento,
   servicioId: row.servicio_id,
   servicio: row.servicio,
-  puesto: row.puesto,
+  puestoId: row.puesto_id,
+  puesto: row.puesto || row.puesto_texto || '',
+  funcionId: row.funcion_id,
+  funcion: row.funcion || '',
   ubicacion: row.ubicacion,
   riesgoId: row.riesgo_id,
   riesgo: row.riesgo,
@@ -27,12 +30,17 @@ const toFrontend = (row) => ({
 export const matrizModel = {
   async getAll() {
     const result = await pool.query(
-      `SELECT mr.*, sd.nombre AS sub_direccion, d.nombre AS departamento,
-              s.nombre AS servicio, r.nombre AS riesgo, p.nombre AS peligro
+      `SELECT mr.id, mr.fecha, mr.sub_direccion_id, mr.departamento_id, mr.servicio_id, mr.puesto AS puesto_texto,
+              mr.puesto_id, mr.funcion_id, mr.ubicacion, mr.peligro_id, mr.riesgo_id,
+              mr.probabilidad, mr.consecuencia, mr.nivel, mr.clasificacion, mr.medidas_prev, mr.observaciones,
+              sd.nombre AS sub_direccion, d.nombre AS departamento, s.nombre AS servicio,
+              po.nombre AS puesto, fn.nombre AS funcion, r.nombre AS riesgo, p.nombre AS peligro
        FROM matriz_riesgos mr
        LEFT JOIN sub_direcciones sd ON sd.id = mr.sub_direccion_id
        LEFT JOIN departamentos d ON d.id = mr.departamento_id
        LEFT JOIN servicios s ON s.id = mr.servicio_id
+       LEFT JOIN puestos po ON po.id = mr.puesto_id
+       LEFT JOIN funciones fn ON fn.id = mr.funcion_id
        LEFT JOIN riesgos r ON r.id = mr.riesgo_id
        LEFT JOIN peligros p ON p.id = mr.peligro_id
        ORDER BY mr.id DESC`
@@ -41,26 +49,31 @@ export const matrizModel = {
   },
 
   async create(data) {
-    const { fecha, subDireccionId, departamentoId, servicioId, puesto, ubicacion, peligroId, riesgoId,
+    const { fecha, subDireccionId, departamentoId, servicioId, puestoId, funcionId, ubicacion, peligroId, riesgoId,
       probabilidad, consecuencia, nivel, clasificacion, medidasPrev, observaciones } = data
 
     const result = await pool.query(
       `INSERT INTO matriz_riesgos
-        (fecha, sub_direccion_id, departamento_id, servicio_id, puesto, ubicacion, peligro_id, riesgo_id,
+        (fecha, sub_direccion_id, departamento_id, servicio_id, puesto_id, funcion_id, ubicacion, peligro_id, riesgo_id,
          probabilidad, consecuencia, nivel, clasificacion, medidas_prev, observaciones)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
        RETURNING *`,
-      [fecha, Number(subDireccionId), Number(departamentoId), Number(servicioId), puesto?.trim() || null,
+      [fecha, Number(subDireccionId), Number(departamentoId), Number(servicioId), Number(puestoId), Number(funcionId),
        ubicacion, Number(peligroId), Number(riesgoId), Number(probabilidad), Number(consecuencia),
        nivel, clasificacion, medidasPrev, observaciones ?? '']
     )
     const fullResult = await pool.query(
-      `SELECT mr.*, sd.nombre AS sub_direccion, d.nombre AS departamento,
-              s.nombre AS servicio, r.nombre AS riesgo, p.nombre AS peligro
+      `SELECT mr.id, mr.fecha, mr.sub_direccion_id, mr.departamento_id, mr.servicio_id, mr.puesto AS puesto_texto,
+              mr.puesto_id, mr.funcion_id, mr.ubicacion, mr.peligro_id, mr.riesgo_id,
+              mr.probabilidad, mr.consecuencia, mr.nivel, mr.clasificacion, mr.medidas_prev, mr.observaciones,
+              sd.nombre AS sub_direccion, d.nombre AS departamento, s.nombre AS servicio,
+              po.nombre AS puesto, fn.nombre AS funcion, r.nombre AS riesgo, p.nombre AS peligro
        FROM matriz_riesgos mr
        LEFT JOIN sub_direcciones sd ON sd.id = mr.sub_direccion_id
        LEFT JOIN departamentos d ON d.id = mr.departamento_id
        LEFT JOIN servicios s ON s.id = mr.servicio_id
+       LEFT JOIN puestos po ON po.id = mr.puesto_id
+       LEFT JOIN funciones fn ON fn.id = mr.funcion_id
        LEFT JOIN riesgos r ON r.id = mr.riesgo_id
        LEFT JOIN peligros p ON p.id = mr.peligro_id
        WHERE mr.id = $1`,
@@ -70,27 +83,32 @@ export const matrizModel = {
   },
 
   async update(id, data) {
-    const { fecha, subDireccionId, departamentoId, servicioId, puesto, ubicacion, peligroId, riesgoId,
+    const { fecha, subDireccionId, departamentoId, servicioId, puestoId, funcionId, ubicacion, peligroId, riesgoId,
       probabilidad, consecuencia, nivel, clasificacion, medidasPrev, observaciones } = data
 
     const result = await pool.query(
       `UPDATE matriz_riesgos SET
-        fecha=$1, sub_direccion_id=$2, departamento_id=$3, servicio_id=$4, puesto=$5, ubicacion=$6, peligro_id=$7,
-        riesgo_id=$8, probabilidad=$9, consecuencia=$10, nivel=$11, clasificacion=$12,
-        medidas_prev=$13, observaciones=$14
-       WHERE id=$15 RETURNING *`,
-      [fecha, Number(subDireccionId), Number(departamentoId), Number(servicioId), puesto?.trim() || null,
+        fecha=$1, sub_direccion_id=$2, departamento_id=$3, servicio_id=$4, puesto_id=$5, funcion_id=$6,
+        ubicacion=$7, peligro_id=$8, riesgo_id=$9, probabilidad=$10, consecuencia=$11, nivel=$12,
+        clasificacion=$13, medidas_prev=$14, observaciones=$15
+       WHERE id=$16 RETURNING *`,
+      [fecha, Number(subDireccionId), Number(departamentoId), Number(servicioId), Number(puestoId), Number(funcionId),
        ubicacion, Number(peligroId), Number(riesgoId), Number(probabilidad), Number(consecuencia),
        nivel, clasificacion, medidasPrev, observaciones ?? '', id]
     )
     if (!result.rows[0]) return null
     const fullResult = await pool.query(
-      `SELECT mr.*, sd.nombre AS sub_direccion, d.nombre AS departamento,
-              s.nombre AS servicio, r.nombre AS riesgo, p.nombre AS peligro
+      `SELECT mr.id, mr.fecha, mr.sub_direccion_id, mr.departamento_id, mr.servicio_id, mr.puesto AS puesto_texto,
+              mr.puesto_id, mr.funcion_id, mr.ubicacion, mr.peligro_id, mr.riesgo_id,
+              mr.probabilidad, mr.consecuencia, mr.nivel, mr.clasificacion, mr.medidas_prev, mr.observaciones,
+              sd.nombre AS sub_direccion, d.nombre AS departamento, s.nombre AS servicio,
+              po.nombre AS puesto, fn.nombre AS funcion, r.nombre AS riesgo, p.nombre AS peligro
        FROM matriz_riesgos mr
        LEFT JOIN sub_direcciones sd ON sd.id = mr.sub_direccion_id
        LEFT JOIN departamentos d ON d.id = mr.departamento_id
        LEFT JOIN servicios s ON s.id = mr.servicio_id
+       LEFT JOIN puestos po ON po.id = mr.puesto_id
+       LEFT JOIN funciones fn ON fn.id = mr.funcion_id
        LEFT JOIN riesgos r ON r.id = mr.riesgo_id
        LEFT JOIN peligros p ON p.id = mr.peligro_id
        WHERE mr.id = $1`,

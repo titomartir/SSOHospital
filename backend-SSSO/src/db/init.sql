@@ -23,6 +23,26 @@ CREATE TABLE IF NOT EXISTS servicios (
     UNIQUE (departamento_id, nombre)
 );
 
+-- Catálogo de Puestos
+CREATE TABLE IF NOT EXISTS puestos (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(120) NOT NULL,
+    servicio_id INT NOT NULL REFERENCES servicios(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (servicio_id, nombre)
+);
+
+-- Catálogo de Funciones
+CREATE TABLE IF NOT EXISTS funciones (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(200) NOT NULL,
+    puesto_id INT NOT NULL REFERENCES puestos(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (puesto_id, nombre)
+);
+
 -- Catálogo de Riesgos
 CREATE TABLE IF NOT EXISTS riesgos (
     id SERIAL PRIMARY KEY,
@@ -48,6 +68,8 @@ CREATE TABLE IF NOT EXISTS matriz_riesgos (
     departamento_id INT NOT NULL REFERENCES departamentos(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     servicio_id INT NOT NULL REFERENCES servicios(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     puesto VARCHAR(100),
+    puesto_id INT REFERENCES puestos(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    funcion_id INT REFERENCES funciones(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     ubicacion VARCHAR(150) NOT NULL,
     peligro_id INT NOT NULL REFERENCES peligros(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     riesgo_id INT NOT NULL REFERENCES riesgos(id) ON UPDATE CASCADE ON DELETE RESTRICT,
@@ -98,6 +120,22 @@ INSERT INTO servicios (nombre, departamento_id) VALUES
 ('Dispensación', (SELECT id FROM departamentos WHERE nombre = 'Farmacia'))
 ON CONFLICT (departamento_id, nombre) DO NOTHING;
 
+-- Insertar Datos Semilla de Puestos
+INSERT INTO puestos (nombre, servicio_id) VALUES
+('Enfermero/a', (SELECT id FROM servicios WHERE nombre = 'Triage')),
+('Médico intensivista', (SELECT id FROM servicios WHERE nombre = 'Cuidados críticos')),
+('Técnico de laboratorio', (SELECT id FROM servicios WHERE nombre = 'Procesamiento de muestras')),
+('Técnico eléctrico', (SELECT id FROM servicios WHERE nombre = 'Mantenimiento eléctrico'))
+ON CONFLICT (servicio_id, nombre) DO NOTHING;
+
+-- Insertar Datos Semilla de Funciones
+INSERT INTO funciones (nombre, puesto_id) VALUES
+('Atención directa a pacientes', (SELECT id FROM puestos WHERE nombre = 'Enfermero/a')),
+('Procedimientos invasivos', (SELECT id FROM puestos WHERE nombre = 'Médico intensivista')),
+('Procesamiento de muestras biológicas', (SELECT id FROM puestos WHERE nombre = 'Técnico de laboratorio')),
+('Inspección de instalaciones', (SELECT id FROM puestos WHERE nombre = 'Técnico eléctrico'))
+ON CONFLICT (puesto_id, nombre) DO NOTHING;
+
 -- Insertar Datos Semilla de Riesgos
 INSERT INTO riesgos (nombre) VALUES
 ('Riesgo Químico'),
@@ -118,11 +156,11 @@ INSERT INTO peligros (nombre, riesgo_id) VALUES
 ON CONFLICT (nombre) DO NOTHING;
 
 -- Insertar Datos Semilla de Matriz de Riesgos
-INSERT INTO matriz_riesgos (id, fecha, sub_direccion_id, departamento_id, servicio_id, puesto, ubicacion, peligro_id, riesgo_id, probabilidad, consecuencia, nivel, clasificacion, medidas_prev, observaciones) VALUES
-(1, '2024-01-15', (SELECT id FROM sub_direcciones WHERE nombre = 'Médica'), (SELECT id FROM departamentos WHERE nombre = 'Emergencias'), (SELECT id FROM servicios WHERE nombre = 'Triage' AND departamento_id = (SELECT id FROM departamentos WHERE nombre = 'Emergencias')), 'Enfermero/a', 'Área de triage', (SELECT id FROM peligros WHERE nombre = 'Virus'), (SELECT id FROM riesgos WHERE nombre = 'Riesgo Biológico'), 4, 5, 20, 'Muy alto', 'Uso obligatorio de EPP, protocolo de bioseguridad, vacunación', ''),
-(2, '2024-01-20', (SELECT id FROM sub_direcciones WHERE nombre = 'Médica'), (SELECT id FROM departamentos WHERE nombre = 'UCI'), (SELECT id FROM servicios WHERE nombre = 'Cuidados críticos' AND departamento_id = (SELECT id FROM departamentos WHERE nombre = 'UCI')), 'Médico intensivista', 'Sala de aislamiento', (SELECT id FROM peligros WHERE nombre = 'Bacterias'), (SELECT id FROM riesgos WHERE nombre = 'Riesgo Biológico'), 4, 4, 16, 'Muy alto', 'Mascarilla N95, barreras físicas, ventilación asistida', ''),
-(3, '2024-02-05', (SELECT id FROM sub_direcciones WHERE nombre = 'Técnica'), (SELECT id FROM departamentos WHERE nombre = 'Laboratorio'), (SELECT id FROM servicios WHERE nombre = 'Procesamiento de muestras' AND departamento_id = (SELECT id FROM departamentos WHERE nombre = 'Laboratorio')), 'Técnico de laboratorio', 'Área de muestras', (SELECT id FROM peligros WHERE nombre = 'Corrosivos'), (SELECT id FROM riesgos WHERE nombre = 'Riesgo Químico'), 3, 3, 9, 'Medio', 'Guantes, gafas y campana extractora', ''),
-(4, '2024-02-11', (SELECT id FROM sub_direcciones WHERE nombre = 'Servicios Generales'), (SELECT id FROM departamentos WHERE nombre = 'Mantenimiento'), (SELECT id FROM servicios WHERE nombre = 'Mantenimiento eléctrico' AND departamento_id = (SELECT id FROM departamentos WHERE nombre = 'Mantenimiento')), 'Técnico eléctrico', 'Tableros principales', (SELECT id FROM peligros WHERE nombre = 'Corrosivos'), (SELECT id FROM riesgos WHERE nombre = 'Riesgo Químico'), 2, 5, 10, 'Medio', 'Bloqueo-etiquetado, herramientas aisladas', '')
+INSERT INTO matriz_riesgos (id, fecha, sub_direccion_id, departamento_id, servicio_id, puesto, puesto_id, funcion_id, ubicacion, peligro_id, riesgo_id, probabilidad, consecuencia, nivel, clasificacion, medidas_prev, observaciones) VALUES
+(1, '2024-01-15', (SELECT id FROM sub_direcciones WHERE nombre = 'Médica'), (SELECT id FROM departamentos WHERE nombre = 'Emergencias'), (SELECT id FROM servicios WHERE nombre = 'Triage' AND departamento_id = (SELECT id FROM departamentos WHERE nombre = 'Emergencias')), 'Enfermero/a', (SELECT id FROM puestos WHERE nombre = 'Enfermero/a' AND servicio_id = (SELECT id FROM servicios WHERE nombre = 'Triage' AND departamento_id = (SELECT id FROM departamentos WHERE nombre = 'Emergencias'))), (SELECT id FROM funciones WHERE nombre = 'Atención directa a pacientes' AND puesto_id = (SELECT id FROM puestos WHERE nombre = 'Enfermero/a' AND servicio_id = (SELECT id FROM servicios WHERE nombre = 'Triage' AND departamento_id = (SELECT id FROM departamentos WHERE nombre = 'Emergencias')))), 'Área de triage', (SELECT id FROM peligros WHERE nombre = 'Virus'), (SELECT id FROM riesgos WHERE nombre = 'Riesgo Biológico'), 4, 5, 20, 'Muy alto', 'Uso obligatorio de EPP, protocolo de bioseguridad, vacunación', ''),
+(2, '2024-01-20', (SELECT id FROM sub_direcciones WHERE nombre = 'Médica'), (SELECT id FROM departamentos WHERE nombre = 'UCI'), (SELECT id FROM servicios WHERE nombre = 'Cuidados críticos' AND departamento_id = (SELECT id FROM departamentos WHERE nombre = 'UCI')), 'Médico intensivista', (SELECT id FROM puestos WHERE nombre = 'Médico intensivista' AND servicio_id = (SELECT id FROM servicios WHERE nombre = 'Cuidados críticos' AND departamento_id = (SELECT id FROM departamentos WHERE nombre = 'UCI'))), (SELECT id FROM funciones WHERE nombre = 'Procedimientos invasivos' AND puesto_id = (SELECT id FROM puestos WHERE nombre = 'Médico intensivista' AND servicio_id = (SELECT id FROM servicios WHERE nombre = 'Cuidados críticos' AND departamento_id = (SELECT id FROM departamentos WHERE nombre = 'UCI')))), 'Sala de aislamiento', (SELECT id FROM peligros WHERE nombre = 'Bacterias'), (SELECT id FROM riesgos WHERE nombre = 'Riesgo Biológico'), 4, 4, 16, 'Muy alto', 'Mascarilla N95, barreras físicas, ventilación asistida', ''),
+(3, '2024-02-05', (SELECT id FROM sub_direcciones WHERE nombre = 'Técnica'), (SELECT id FROM departamentos WHERE nombre = 'Laboratorio'), (SELECT id FROM servicios WHERE nombre = 'Procesamiento de muestras' AND departamento_id = (SELECT id FROM departamentos WHERE nombre = 'Laboratorio')), 'Técnico de laboratorio', (SELECT id FROM puestos WHERE nombre = 'Técnico de laboratorio' AND servicio_id = (SELECT id FROM servicios WHERE nombre = 'Procesamiento de muestras' AND departamento_id = (SELECT id FROM departamentos WHERE nombre = 'Laboratorio'))), (SELECT id FROM funciones WHERE nombre = 'Procesamiento de muestras biológicas' AND puesto_id = (SELECT id FROM puestos WHERE nombre = 'Técnico de laboratorio' AND servicio_id = (SELECT id FROM servicios WHERE nombre = 'Procesamiento de muestras' AND departamento_id = (SELECT id FROM departamentos WHERE nombre = 'Laboratorio')))), 'Área de muestras', (SELECT id FROM peligros WHERE nombre = 'Corrosivos'), (SELECT id FROM riesgos WHERE nombre = 'Riesgo Químico'), 3, 3, 9, 'Medio', 'Guantes, gafas y campana extractora', ''),
+(4, '2024-02-11', (SELECT id FROM sub_direcciones WHERE nombre = 'Servicios Generales'), (SELECT id FROM departamentos WHERE nombre = 'Mantenimiento'), (SELECT id FROM servicios WHERE nombre = 'Mantenimiento eléctrico' AND departamento_id = (SELECT id FROM departamentos WHERE nombre = 'Mantenimiento')), 'Técnico eléctrico', (SELECT id FROM puestos WHERE nombre = 'Técnico eléctrico' AND servicio_id = (SELECT id FROM servicios WHERE nombre = 'Mantenimiento eléctrico' AND departamento_id = (SELECT id FROM departamentos WHERE nombre = 'Mantenimiento'))), (SELECT id FROM funciones WHERE nombre = 'Inspección de instalaciones' AND puesto_id = (SELECT id FROM puestos WHERE nombre = 'Técnico eléctrico' AND servicio_id = (SELECT id FROM servicios WHERE nombre = 'Mantenimiento eléctrico' AND departamento_id = (SELECT id FROM departamentos WHERE nombre = 'Mantenimiento')))), 'Tableros principales', (SELECT id FROM peligros WHERE nombre = 'Corrosivos'), (SELECT id FROM riesgos WHERE nombre = 'Riesgo Químico'), 2, 5, 10, 'Medio', 'Bloqueo-etiquetado, herramientas aisladas', '')
 ON CONFLICT (id) DO NOTHING;
 
 -- Insertar Datos Semilla de Planificaciones
@@ -135,6 +173,8 @@ ON CONFLICT (id) DO NOTHING;
 SELECT setval('sub_direcciones_id_seq', COALESCE((SELECT MAX(id)+1 FROM sub_direcciones), 1), false);
 SELECT setval('departamentos_id_seq', COALESCE((SELECT MAX(id)+1 FROM departamentos), 1), false);
 SELECT setval('servicios_id_seq', COALESCE((SELECT MAX(id)+1 FROM servicios), 1), false);
+SELECT setval('puestos_id_seq', COALESCE((SELECT MAX(id)+1 FROM puestos), 1), false);
+SELECT setval('funciones_id_seq', COALESCE((SELECT MAX(id)+1 FROM funciones), 1), false);
 SELECT setval('riesgos_id_seq', COALESCE((SELECT MAX(id)+1 FROM riesgos), 1), false);
 SELECT setval('peligros_id_seq', COALESCE((SELECT MAX(id)+1 FROM peligros), 1), false);
 SELECT setval('matriz_riesgos_id_seq', COALESCE((SELECT MAX(id)+1 FROM matriz_riesgos), 1), false);

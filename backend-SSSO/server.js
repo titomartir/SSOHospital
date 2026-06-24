@@ -5,6 +5,9 @@ import departamentoRoutes from './src/routes/departamentoRoutes.js'
 import subDireccionRoutes from './src/routes/subDireccionRoutes.js'
 import servicioRoutes from './src/routes/servicioRoutes.js'
 import catalogoEstructuraRoutes from './src/routes/catalogoEstructuraRoutes.js'
+import puestoRoutes from './src/routes/puestoRoutes.js'
+import funcionRoutes from './src/routes/funcionRoutes.js'
+import catalogoPuestoFuncionRoutes from './src/routes/catalogoPuestoFuncionRoutes.js'
 import catalogoRiesgoPeligroRoutes from './src/routes/catalogoRiesgoPeligroRoutes.js'
 import peligroRoutes from './src/routes/peligroRoutes.js'
 import riesgoRoutes from './src/routes/riesgoRoutes.js'
@@ -24,6 +27,9 @@ app.use('/api/departamentos', departamentoRoutes)
 app.use('/api/sub-direcciones', subDireccionRoutes)
 app.use('/api/servicios', servicioRoutes)
 app.use('/api/catalogo-estructura', catalogoEstructuraRoutes)
+app.use('/api/puestos', puestoRoutes)
+app.use('/api/funciones', funcionRoutes)
+app.use('/api/catalogo-puesto-funcion', catalogoPuestoFuncionRoutes)
 app.use('/api/catalogo-riesgo-peligro', catalogoRiesgoPeligroRoutes)
 app.use('/api/peligros', peligroRoutes)
 app.use('/api/riesgos', riesgoRoutes)
