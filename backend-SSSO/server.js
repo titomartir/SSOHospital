@@ -13,6 +13,7 @@ import peligroRoutes from './src/routes/peligroRoutes.js'
 import riesgoRoutes from './src/routes/riesgoRoutes.js'
 import matrizRoutes from './src/routes/matrizRoutes.js'
 import planificacionRoutes from './src/routes/planificacionRoutes.js'
+import dashboardRoutes from './src/routes/dashboardRoutes.js'
 
 dotenv.config()
 
@@ -35,6 +36,7 @@ app.use('/api/peligros', peligroRoutes)
 app.use('/api/riesgos', riesgoRoutes)
 app.use('/api/matriz', matrizRoutes)
 app.use('/api/planificacion', planificacionRoutes)
+app.use('/api/dashboard', dashboardRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {

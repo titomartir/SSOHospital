@@ -62,7 +62,11 @@ export const peligroModel = {
 
     const [peligro] = peligroResult.rows
     const inUseResult = await pool.query(
-      'SELECT 1 FROM matriz_riesgos WHERE peligro = $1 LIMIT 1',
+      `SELECT 1
+       FROM matriz_evaluacion_detalles det
+       INNER JOIN peligros p ON p.id = det.peligro_id
+       WHERE p.nombre = $1
+       LIMIT 1`,
       [peligro.nombre]
     )
 
@@ -78,7 +82,11 @@ export const peligroModel = {
 
   async remove(nombre) {
     const inUseResult = await pool.query(
-      'SELECT 1 FROM matriz_riesgos WHERE peligro = $1 LIMIT 1',
+      `SELECT 1
+       FROM matriz_evaluacion_detalles det
+       INNER JOIN peligros p ON p.id = det.peligro_id
+       WHERE p.nombre = $1
+       LIMIT 1`,
       [nombre]
     )
 

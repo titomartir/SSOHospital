@@ -78,6 +78,15 @@ CREATE TABLE IF NOT EXISTS matriz_riesgos (
     nivel INT NOT NULL,
     clasificacion VARCHAR(20) NOT NULL,
     medidas_prev TEXT NOT NULL,
+    acciones TEXT NOT NULL DEFAULT '',
+    recursos TEXT NOT NULL DEFAULT '',
+    fecha_cumplimiento DATE,
+    responsable TEXT NOT NULL DEFAULT '',
+    estado VARCHAR(20) NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'en proceso', 'completado')),
+    CONSTRAINT matriz_riesgos_medidas_prev_max_len CHECK (char_length(medidas_prev) <= 2000),
+    CONSTRAINT matriz_riesgos_acciones_max_len CHECK (char_length(acciones) <= 2000),
+    CONSTRAINT matriz_riesgos_recursos_max_len CHECK (char_length(recursos) <= 2000),
+    CONSTRAINT matriz_riesgos_responsable_max_len CHECK (char_length(responsable) <= 2000),
     observaciones TEXT
 );
 

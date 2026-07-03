@@ -1,5 +1,4 @@
 import { matrizModel } from '../models/matrizModel.js'
-import { calculateRiskLevel, classifyRisk } from '../utils/calculators.js'
 
 export const matrizController = {
   async getAll(req, res) {
@@ -12,31 +11,39 @@ export const matrizController = {
     }
   },
 
+  async getById(req, res) {
+    try {
+      const { id } = req.params
+      const item = await matrizModel.getById(Number(id))
+      if (!item) return res.status(404).json({ error: 'Evaluación no encontrada' })
+      res.json(item)
+    } catch (err) {
+      console.error('matrizController.getById:', err)
+      res.status(500).json({ error: 'Error al obtener evaluación' })
+    }
+  },
+
   async create(req, res) {
     try {
-      const payload = req.body
-      const nivel = calculateRiskLevel(payload.probabilidad, payload.consecuencia)
-      const clasificacion = classifyRisk(nivel)
-      const newItem = await matrizModel.create({ ...payload, nivel, clasificacion })
+      const newItem = await matrizModel.create(req.body)
       res.status(201).json(newItem)
     } catch (err) {
       console.error('matrizController.create:', err)
-      res.status(500).json({ error: 'Error al crear evaluación de riesgo' })
+      const message = err.code === 'VALIDATION_ERROR' ? err.message : 'Error al crear evaluación de riesgo'
+      res.status(err.code === 'VALIDATION_ERROR' ? 400 : 500).json({ error: message })
     }
   },
 
   async update(req, res) {
     try {
       const { id } = req.params
-      const payload = req.body
-      const nivel = calculateRiskLevel(payload.probabilidad, payload.consecuencia)
-      const clasificacion = classifyRisk(nivel)
-      const updated = await matrizModel.update(Number(id), { ...payload, nivel, clasificacion })
+      const updated = await matrizModel.update(Number(id), req.body)
       if (!updated) return res.status(404).json({ error: 'Evaluación no encontrada' })
       res.json(updated)
     } catch (err) {
       console.error('matrizController.update:', err)
-      res.status(500).json({ error: 'Error al actualizar evaluación de riesgo' })
+      const message = err.code === 'VALIDATION_ERROR' ? err.message : 'Error al actualizar evaluación de riesgo'
+      res.status(err.code === 'VALIDATION_ERROR' ? 400 : 500).json({ error: message })
     }
   },
 
