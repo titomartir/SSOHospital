@@ -40,8 +40,8 @@ It should change rarely.
 - DRY: centralize repeated transform/validation logic.
 
 ## Reusability And Modularity
-- Reuse existing UI primitives in SSO/src/components.
-- Reuse existing hooks in SSO/src/hooks when applicable.
+- Reuse existing UI primitives in frontend-SSO/src/components.
+- Reuse existing hooks in frontend-SSO/src/hooks when applicable.
 - Reuse existing SQL migration pattern in backend-SSSO/src/db.
 
 ## Safety Restrictions

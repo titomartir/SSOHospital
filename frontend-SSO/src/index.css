@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+/* Paleta personalizada SSO Manager */
+@theme {
+  --color-primary: #2563eb;
+  --color-secondary: #4b5563;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-orange-100: #ffedd5;
+  --color-orange-700: #c2410c;
+}
+
+/* Dark mode basado en clase .dark en <html> */
+@variant dark (&:where(.dark, .dark *));
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 8mm;
+  }
+
+  body.print-dashboard-mode * {
+    visibility: hidden !important;
+  }
+
+  body.print-dashboard-mode #dashboard-risk-root,
+  body.print-dashboard-mode #dashboard-risk-root * {
+    visibility: visible !important;
+  }
+
+  body.print-dashboard-mode #dashboard-risk-root {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #ffffff;
+  }
+
+  body.print-dashboard-mode #dashboard-risk-root section,
+  body.print-dashboard-mode #dashboard-risk-root article {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

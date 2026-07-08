@@ -10,12 +10,12 @@
 - react-hot-toast
 
 ## Entry And App Shell
-- Entry: SSO/src/main.jsx
+- Entry: frontend-SSO/src/main.jsx
 - Router: BrowserRouter
 - Global providers:
   - AuthProvider
   - DataProvider
-- Main shell in SSO/src/App.jsx:
+- Main shell in frontend-SSO/src/App.jsx:
   - Sidebar + Navbar + page routes.
 
 ## Routes

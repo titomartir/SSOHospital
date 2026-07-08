@@ -96,7 +96,7 @@ Source template: backend-SSSO/.env.example
 - No pipeline automation currently documented in repo.
 
 ## Infra Notes
-- Frontend proxy is configured in SSO/vite.config.js to route /api to backend.
+- Frontend proxy is configured in frontend-SSO/vite.config.js to route /api to backend.
 - Ports can shift for Vite when occupied unless strictPort is used at runtime.
 - In Docker stack, proxy target is set by env var `VITE_PROXY_TARGET`.
 - PostgreSQL startup applies ordered SQL files mounted into `/docker-entrypoint-initdb.d`.

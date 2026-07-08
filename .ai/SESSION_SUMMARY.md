@@ -23,14 +23,19 @@
 - backend-SSSO/Dockerfile.dev
 - backend-SSSO/.dockerignore
 - backend-SSSO/src/db/initdb/02_run_migrations.sh
-- SSO/Dockerfile.dev
-- SSO/.dockerignore
-- SSO/vite.config.js
+- frontend-SSO/Dockerfile.dev
+- frontend-SSO/.dockerignore
+- frontend-SSO/vite.config.js
 - backend-SSSO/src/POSTGRESQL_PGADMIN.md
-- SSO/README.md
+- frontend-SSO/README.md
 - README.md
 - .ai/DEVOPS.md
 - .ai/CHANGELOG_AI.md
 - .ai/SESSION_SUMMARY.md
 - .ai/TODO.md
 - .ai/DECISIONS.md
+
+## Actualizacion posterior
+- Se elimino el repositorio Git anidado del frontend para consolidar un unico repositorio (`SSOHospital`).
+- Se migro la carpeta frontend de `SSO` a `frontend-SSO` como estructura objetivo.
+- Se actualizaron referencias de rutas en compose, README raiz, instrucciones permanentes y docs .ai.

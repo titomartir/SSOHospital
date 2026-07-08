@@ -81,3 +81,24 @@
   - Completar verificacion real del stack dockerizado.
 - Impact:
   - Estado de bloqueo operativo documentado con trazabilidad tecnica.
+
+## 2026-07-08 (Unificacion Git frontend)
+- Files modified:
+  - docker-compose.dev.yml
+  - README.md
+  - .github/copilot-instructions.md
+  - frontend-SSO/README.md
+  - .ai/FRONTEND.md
+  - .ai/DEVOPS.md
+  - .ai/PROJECT_CONTEXT.md
+  - .ai/SESSION_SUMMARY.md
+  - .ai/CHANGELOG_AI.md
+- Description:
+  - Se elimino el repositorio Git anidado en frontend y se consolido el proyecto bajo un unico repo raiz (`SSOHospital`).
+  - Se definio `frontend-SSO` como carpeta frontend objetivo, alineada con `backend-SSSO`.
+  - Se actualizaron referencias de rutas en compose, README y documentacion interna.
+- Reason:
+  - Evitar errores operativos de repos anidados y simplificar flujo de commit/push.
+- Impact:
+  - Estructura de repositorio unificada sin cambios de logica funcional.
+  - Comandos de desarrollo y Docker quedan alineados al nuevo path frontend.

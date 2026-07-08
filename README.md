@@ -66,7 +66,7 @@ npm start
 ### Frontend
 
 ```powershell
-cd SSO
+cd frontend-SSO
 npm install
 npm run dev
 ```

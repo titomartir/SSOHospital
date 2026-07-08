@@ -89,7 +89,7 @@ Infra:
 
 ## Inconsistencies Found (Documented before any logic change)
 1. backend-SSSO/src/POSTGRESQL_PGADMIN.md is outdated and references another domain and ports/db names not matching current docker-compose.yml.
-2. SSO/README.md is generic Vite template and does not describe this project.
+2. frontend-SSO/README.md is generic Vite template and does not describe this project.
 3. backend-SSSO/package.json has db:migrate-puestos-servicio pointing to migrate_puestos_funciones_relacion.sql (name mismatch vs intent).
 4. Frontend still includes useLocalStorage hook and dependencies html2canvas/jspdf/xlsx while some flows changed over time; active usage is partial.
 
