@@ -1,178 +1,134 @@
-# Configuración de PostgreSQL y pgAdmin
+# PostgreSQL y pgAdmin - SSOHospital
 
-## ✅ Cambios Realizados
+Esta guia describe la configuracion real del proyecto actual.
 
-La aplicación ahora usa **PostgreSQL 15** en lugar de MySQL 8.0.
+## Servicios y puertos
 
-### Servicios Disponibles:
+### Modo Docker completo (recomendado)
 
-1. **PostgreSQL**: Puerto `5432`
-2. **pgAdmin 4**: Puerto `5050` (http://localhost:5050)
-3. **API Server**: Puerto `4000`
-4. **Client (React)**: Puerto `5174`
+- PostgreSQL (contenedor `sso_dev_db`): `localhost:5435`
+- pgAdmin (contenedor `sso_dev_pgadmin`): `http://localhost:5053`
+- API backend (contenedor `sso_dev_backend`): `http://localhost:3100`
+- Frontend (contenedor `sso_dev_frontend`): `http://localhost:5178`
 
-## 🔌 Conectar a pgAdmin
+### Modo Docker legado (solo DB + pgAdmin en backend-SSSO/docker-compose.yml)
 
-### 1. Acceder a pgAdmin
-Abre tu navegador en: **http://localhost:5050**
+- PostgreSQL (contenedor `sso_postgres_db`): `localhost:5433`
+- pgAdmin (contenedor `sso_pgadmin`): `http://localhost:5050`
 
-**Credenciales de pgAdmin:**
-- Email: `admin@admin.com`
-- Password: `admin123`
+## Credenciales locales de desarrollo
 
-### 2. Agregar Servidor en pgAdmin
+Fuente: `backend-SSSO/docker-compose.yml` y `backend-SSSO/.env.example`.
 
-Una vez dentro de pgAdmin:
+- PostgreSQL
+  - Usuario: `appuser`
+  - Password: `SSOHospital2024`
+  - Base de datos: `SSO`
 
-1. Click derecho en "Servers" → "Register" → "Server"
+- pgAdmin
+  - Email: `admin@admin.com`
+  - Password: `admin123`
 
-2. En la pestaña **General**:
-   - Name: `Banco de Sangre Local`
+## Levantar stack dockerizado completo
 
-3. En la pestaña **Connection**:
-   - Host name/address: `db` (nombre del contenedor Docker)
-   - Port: `5432`
-   - Maintenance database: `banco_sangre`
-   - Username: `appuser`
-   - Password: `CAMBIAR_POR_PASSWORD_SEGURA_123!@#` (valor del .env)
-   - ✅ Save password (opcional)
-
-4. Click en "Save"
-
-### 3. Explorar la Base de Datos
-
-Después de conectar, podrás ver:
-
-```
-Banco de Sangre Local
-└── Databases
-    └── banco_sangre
-        └── Schemas
-            └── public
-                └── Tables
-                    ├── donante (29,311 registros históricos)
-                    ├── entrevistas
-                    └── serologias
-```
-
-## 🔧 Conexión Directa (opcional)
-
-Si deseas conectarte con otra herramienta:
-
-**Conexión desde localhost:**
-- Host: `localhost`
-- Port: `5432`
-- Database: `banco_sangre`
-- Username: `appuser`
-- Password: `CAMBIAR_POR_PASSWORD_SEGURA_123!@#` (valor del .env)
-
-**Conexión desde código Node.js:**
-```javascript
-const { Pool } = require('pg');
-const pool = new Pool({
-  host: 'localhost',
-  port: 5432,
-  user: 'appuser',
-  password: 'CAMBIAR_POR_PASSWORD_SEGURA_123!@#',
-  database: 'banco_sangre'
-});
-```
-
-## 📊 Importar Datos Históricos a PostgreSQL
-
-Los datos de MySQL deben ser migrados a PostgreSQL. Para importar los 29,311 donantes:
-
-### Opción 1: Usar el script de conversión actualizado
+Desde la raiz del repositorio:
 
 ```powershell
-# 1. Generar archivo SQL compatible con PostgreSQL
-python convertir_donantes_postgresql.py
-
-# 2. Importar a la base de datos
-Get-Content -Raw donantes_migrados_postgresql.sql | docker compose exec -T db psql -U appuser -d banco_sangre
+docker compose -f docker-compose.dev.yml up -d
 ```
 
-### Opción 2: Usar pgAdmin
+Detener stack:
 
-1. En pgAdmin, click derecho en la tabla `donante`
-2. Seleccionar "Import/Export Data..."
-3. Import → CSV file
-4. Seleccionar el archivo y mapear las columnas
-
-## 🔄 Comandos Útiles
-
-### Reiniciar servicios
 ```powershell
-docker compose restart
+docker compose -f docker-compose.dev.yml down
 ```
 
-### Ver logs de PostgreSQL
+## Levantar solo infraestructura de datos (modo legado)
+
+Desde `backend-SSSO`:
+
 ```powershell
-docker compose logs db
+npm run docker:up
 ```
 
-### Acceder a psql (consola PostgreSQL)
+Verificar conexion backend -> DB:
+
 ```powershell
-docker compose exec db psql -U appuser -d banco_sangre
+npm run db:test
 ```
 
-### Ejemplos de queries en psql
-```sql
--- Ver todas las tablas
-\dt
+## Conectar pgAdmin al contenedor
 
--- Contar donantes
-SELECT COUNT(*) FROM donante;
+1. Abrir `http://localhost:5050`.
+2. Register -> Server.
+3. General:
+   - Name: `SSOHospital Local`
+4. Connection:
+  - Host name/address: `db`
+  - Port: `5432`
+  - Maintenance database: `SSO`
+  - Username: `appuser`
+  - Password: `SSOHospital2024`
+5. Save.
 
--- Ver estructura de tabla
-\d donante
+Nota: dentro de Docker se usa `db:5432`; desde tu host se usa `localhost:5433`.
 
--- Buscar donantes
-SELECT "idDonante", "Nombre", "Apellido", "Grupo" 
-FROM donante 
-LIMIT 10;
+## Comandos utiles
 
--- Salir de psql
-\q
+Desde `backend-SSSO`:
+
+```powershell
+# Levantar contenedores
+npm run docker:up
+
+# Detener contenedores
+npm run docker:down
+
+# Verificar conexion a PostgreSQL
+npm run db:test
+
+# Inicializar esquema base (si aplica)
+npm run db:init
 ```
 
-## ⚠️ Diferencias Importantes MySQL → PostgreSQL
+Consola SQL directa al contenedor:
 
-1. **Comillas**: PostgreSQL usa comillas dobles para nombres de columnas con espacios o mayúsculas
-   - Antes: `` `Fecha de Nacimiento` ``
-   - Ahora: `"Fecha de Nacimiento"`
+```powershell
+docker compose exec db psql -U appuser -d SSO
+```
 
-2. **Parámetros**: PostgreSQL usa `$1, $2, $3` en lugar de `?`
-   - Antes: `SELECT * FROM donante WHERE id = ?`
-   - Ahora: `SELECT * FROM donante WHERE "idDonante" = $1`
+## Migraciones disponibles
 
-3. **AUTO_INCREMENT**: PostgreSQL usa `SERIAL`
-   - Antes: `id INT AUTO_INCREMENT`
-   - Ahora: `id SERIAL`
+Scripts npm en `backend-SSSO/package.json`:
 
-4. **LIMIT**: Sintaxis similar pero más flexible en PostgreSQL
-   - `LIMIT 10 OFFSET 20`
+- `db:migrate-estructura`
+- `db:migrate-puestos-funciones`
+- `db:migrate-riesgo-peligro`
+- `db:migrate-matriz`
+- `db:migrate-matriz-bloques`
+- `db:migrate-matriz-maestro-detalle`
+- `db:migrate-matriz-funciones`
+- scripts de rollback relacionados
 
-5. **ILIKE**: PostgreSQL tiene búsqueda case-insensitive nativa
-   - Antes: `WHERE nombre LIKE '%juan%'`
-   - Ahora: `WHERE "Nombre" ILIKE '%juan%'`
+En `docker-compose.dev.yml`, las migraciones principales tambien se ejecutan automaticamente al inicializar un volumen nuevo de PostgreSQL, montadas como archivos `.sql` ordenados dentro de `/docker-entrypoint-initdb.d`.
 
-## 🎯 URLs de Acceso
+## Estado de verificacion actual
 
-- **Aplicación React**: http://localhost:5174
-- **API Backend**: http://localhost:4000/api
-- **pgAdmin**: http://localhost:5050
-- **PostgreSQL**: localhost:5432
+La configuracion Docker del proyecto ya fue validada a nivel de compose.
+Si aparece el error `commit failed: structure needs cleaning`, el problema esta en el daemon Docker del host y no en esta configuracion del proyecto.
 
-## 📁 Archivos Modificados
+## Solucion de problemas
 
-- [docker-compose.yml](docker-compose.yml) - Cambiado de MySQL a PostgreSQL, agregado pgAdmin
-- [server/package.json](server/package.json) - Cambiado `mysql2` por `pg`
-- [server/src/models/db.js](server/src/models/db.js) - Adaptado para PostgreSQL
-- [server/src/sql/create_tables.sql](server/src/sql/create_tables.sql) - Sintaxis PostgreSQL
-- [server/src/controllers/*.js](server/src/controllers/) - Actualizado queries para PostgreSQL
+- Si `db:test` falla por conexion:
+  - confirma que `docker:up` este activo.
+  - confirma puerto `5433` libre en host.
+  - valida credenciales en `.env`.
 
-## 🔒 Seguridad
+- Si pgAdmin no conecta:
+  - usa `db` como host desde pgAdmin (no `localhost`).
+  - confirma que el contenedor `sso_pgadmin` este en estado `Running`.
 
-**Importante:** Las contraseñas en este archivo son para desarrollo local. 
-En producción, usa variables de entorno seguras y contraseñas fuertes.
+## Seguridad
+
+Las credenciales de este documento son solo para desarrollo local.
+No reutilizar en ambientes productivos.
