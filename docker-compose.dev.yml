@@ -20,6 +20,10 @@ services:
       - ./backend-SSSO/src/db/migrate_matriz_maestro_detalle.sql:/docker-entrypoint-initdb.d/07_migrate_matriz_maestro_detalle.sql:ro
       - ./backend-SSSO/src/db/migrate_matriz_funciones_jerarquia.sql:/docker-entrypoint-initdb.d/08_migrate_matriz_funciones_jerarquia.sql:ro
       - ./backend-SSSO/src/db/migrate_catalogos_independientes.sql:/docker-entrypoint-initdb.d/09_migrate_catalogos_independientes.sql:ro
+      - ./backend-SSSO/src/db/migrate_riesgos_fisicos_relacional.sql:/docker-entrypoint-initdb.d/10_migrate_riesgos_fisicos_relacional.sql:ro
+      - ./backend-SSSO/src/db/seed_riesgos_fisicos_maestros.sql:/docker-entrypoint-initdb.d/11_seed_riesgos_fisicos_maestros.sql:ro
+      - ./backend-SSSO/src/db/seed_riesgos_fisicos_relaciones.sql:/docker-entrypoint-initdb.d/12_seed_riesgos_fisicos_relaciones.sql:ro
+      - ./backend-SSSO/src/db/seed_riesgos_quimicos_biologicos_ergonomicos.sql:/docker-entrypoint-initdb.d/13_seed_riesgos_quimicos_biologicos_ergonomicos.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U appuser -d SSO"]
       interval: 10s
