@@ -16,5 +16,6 @@ run_sql /docker-entrypoint-initdb.d/migrations/migrate_matriz_jerarquica.sql
 run_sql /docker-entrypoint-initdb.d/migrations/migrate_matriz_riesgo_bloques.sql
 run_sql /docker-entrypoint-initdb.d/migrations/migrate_matriz_maestro_detalle.sql
 run_sql /docker-entrypoint-initdb.d/migrations/migrate_matriz_funciones_jerarquia.sql
+run_sql /docker-entrypoint-initdb.d/migrations/migrate_catalogos_independientes.sql
 
 echo "[initdb] Migration bootstrap completed."

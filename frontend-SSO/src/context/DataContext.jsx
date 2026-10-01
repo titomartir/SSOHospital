@@ -11,6 +11,10 @@ const defaultCatalogos = {
   departamentos: [],
   estructura: [],
   riesgoPeligroEstructura: [],
+  medidasPreventivas: [],
+  accionesCatalogo: [],
+  recursosCatalogo: [],
+  responsablesCatalogo: [],
   peligros: [],
   riesgos: [],
   puestos: [],
@@ -84,6 +88,40 @@ export const DataProvider = ({ children }) => {
 
   const refreshPuestoFuncionEstructura = async () => {
     await refreshEstructura()
+  }
+
+  const refreshCatalogosIndependientes = async () => {
+    const [medidasPreventivas, accionesCatalogo, recursosCatalogo, responsablesCatalogo] = await Promise.all([
+      catalogoService.getMedidasPreventivas(),
+      catalogoService.getAccionesCatalogo(),
+      catalogoService.getRecursosCatalogo(),
+      catalogoService.getResponsablesCatalogo(),
+    ])
+
+    setCatalogos((prev) => ({
+      ...prev,
+      medidasPreventivas,
+      accionesCatalogo,
+      recursosCatalogo,
+      responsablesCatalogo,
+    }))
+  }
+
+  const validateNombreCatalogo = (nombre) => {
+    if (typeof nombre !== 'string') {
+      toast.error('El nombre es requerido')
+      return null
+    }
+    const normalized = nombre.trim()
+    if (!normalized) {
+      toast.error('El nombre es requerido')
+      return null
+    }
+    if (normalized.length > 255) {
+      toast.error('El nombre no puede exceder 255 caracteres')
+      return null
+    }
+    return normalized
   }
 
   const createEvaluacion = async (payload) => {
@@ -361,6 +399,154 @@ export const DataProvider = ({ children }) => {
     }
   }
 
+  const addMedidaPreventiva = async (nombre) => {
+    try {
+      const nombreNormalizado = validateNombreCatalogo(nombre)
+      if (!nombreNormalizado) return
+      await catalogoService.addMedidaPreventiva(nombreNormalizado)
+      await refreshCatalogosIndependientes()
+      toast.success('Medida preventiva agregada')
+    } catch (err) {
+      const message = err.response?.data?.error || 'Error al agregar medida preventiva'
+      toast.error(message)
+    }
+  }
+
+  const updateMedidaPreventiva = async (id, nombre) => {
+    try {
+      const nombreNormalizado = validateNombreCatalogo(nombre)
+      if (!nombreNormalizado) return
+      await catalogoService.updateMedidaPreventiva(id, nombreNormalizado)
+      await refreshCatalogosIndependientes()
+      toast.success('Medida preventiva actualizada')
+    } catch (err) {
+      const message = err.response?.data?.error || 'Error al actualizar medida preventiva'
+      toast.error(message)
+    }
+  }
+
+  const removeMedidaPreventiva = async (id) => {
+    try {
+      await catalogoService.removeMedidaPreventiva(id)
+      await refreshCatalogosIndependientes()
+      toast.success('Medida preventiva eliminada')
+    } catch (err) {
+      const message = err.response?.data?.error || 'Error al eliminar medida preventiva'
+      toast.error(message)
+    }
+  }
+
+  const addAccionCatalogo = async (nombre) => {
+    try {
+      const nombreNormalizado = validateNombreCatalogo(nombre)
+      if (!nombreNormalizado) return
+      await catalogoService.addAccionCatalogo(nombreNormalizado)
+      await refreshCatalogosIndependientes()
+      toast.success('Acción agregada')
+    } catch (err) {
+      const message = err.response?.data?.error || 'Error al agregar acción'
+      toast.error(message)
+    }
+  }
+
+  const updateAccionCatalogo = async (id, nombre) => {
+    try {
+      const nombreNormalizado = validateNombreCatalogo(nombre)
+      if (!nombreNormalizado) return
+      await catalogoService.updateAccionCatalogo(id, nombreNormalizado)
+      await refreshCatalogosIndependientes()
+      toast.success('Acción actualizada')
+    } catch (err) {
+      const message = err.response?.data?.error || 'Error al actualizar acción'
+      toast.error(message)
+    }
+  }
+
+  const removeAccionCatalogo = async (id) => {
+    try {
+      await catalogoService.removeAccionCatalogo(id)
+      await refreshCatalogosIndependientes()
+      toast.success('Acción eliminada')
+    } catch (err) {
+      const message = err.response?.data?.error || 'Error al eliminar acción'
+      toast.error(message)
+    }
+  }
+
+  const addRecursoCatalogo = async (nombre) => {
+    try {
+      const nombreNormalizado = validateNombreCatalogo(nombre)
+      if (!nombreNormalizado) return
+      await catalogoService.addRecursoCatalogo(nombreNormalizado)
+      await refreshCatalogosIndependientes()
+      toast.success('Recurso agregado')
+    } catch (err) {
+      const message = err.response?.data?.error || 'Error al agregar recurso'
+      toast.error(message)
+    }
+  }
+
+  const updateRecursoCatalogo = async (id, nombre) => {
+    try {
+      const nombreNormalizado = validateNombreCatalogo(nombre)
+      if (!nombreNormalizado) return
+      await catalogoService.updateRecursoCatalogo(id, nombreNormalizado)
+      await refreshCatalogosIndependientes()
+      toast.success('Recurso actualizado')
+    } catch (err) {
+      const message = err.response?.data?.error || 'Error al actualizar recurso'
+      toast.error(message)
+    }
+  }
+
+  const removeRecursoCatalogo = async (id) => {
+    try {
+      await catalogoService.removeRecursoCatalogo(id)
+      await refreshCatalogosIndependientes()
+      toast.success('Recurso eliminado')
+    } catch (err) {
+      const message = err.response?.data?.error || 'Error al eliminar recurso'
+      toast.error(message)
+    }
+  }
+
+  const addResponsableCatalogo = async (nombre) => {
+    try {
+      const nombreNormalizado = validateNombreCatalogo(nombre)
+      if (!nombreNormalizado) return
+      await catalogoService.addResponsableCatalogo(nombreNormalizado)
+      await refreshCatalogosIndependientes()
+      toast.success('Responsable agregado')
+    } catch (err) {
+      const message = err.response?.data?.error || 'Error al agregar responsable'
+      toast.error(message)
+    }
+  }
+
+  const updateResponsableCatalogo = async (id, nombre) => {
+    try {
+      const nombreNormalizado = validateNombreCatalogo(nombre)
+      if (!nombreNormalizado) return
+      await catalogoService.updateResponsableCatalogo(id, nombreNormalizado)
+      await refreshCatalogosIndependientes()
+      toast.success('Responsable actualizado')
+    } catch (err) {
+      const message = err.response?.data?.error || 'Error al actualizar responsable'
+      toast.error(message)
+    }
+  }
+
+  const removeResponsableCatalogo = async (id) => {
+    try {
+      await catalogoService.removeResponsableCatalogo(id)
+      await refreshCatalogosIndependientes()
+      toast.success('Responsable eliminado')
+    } catch (err) {
+      const message = err.response?.data?.error || 'Error al eliminar responsable'
+      toast.error(message)
+    }
+  }
+
   const stats = useMemo(() => {
     const total = matriz.length
     const altos = matriz.filter((item) => ['Alto', 'Muy alto'].includes(item.clasificacion)).length
@@ -411,6 +597,18 @@ export const DataProvider = ({ children }) => {
     addFuncion,
     updateFuncion,
     removeFuncion,
+    addMedidaPreventiva,
+    updateMedidaPreventiva,
+    removeMedidaPreventiva,
+    addAccionCatalogo,
+    updateAccionCatalogo,
+    removeAccionCatalogo,
+    addRecursoCatalogo,
+    updateRecursoCatalogo,
+    removeRecursoCatalogo,
+    addResponsableCatalogo,
+    updateResponsableCatalogo,
+    removeResponsableCatalogo,
   }
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

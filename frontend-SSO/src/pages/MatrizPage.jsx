@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FiDownload, FiEdit2, FiEye, FiFileText, FiPlus, FiPrinter, FiTrash2 } from 'react-icons/fi'
 import Button from '../components/Button'
 import Badge from '../components/Badge'
@@ -19,6 +19,19 @@ const createRiesgoAsociado = () => ({
   peligroId: '',
   probabilidad: 1,
   consecuencia: 1,
+  peligroMedidaId: '',
+  peligroMedidaAccionId: '',
+  medidaPreventivaId: '',
+  accionId: '',
+  recursoId: '',
+  responsableId: '',
+  medidasContextuales: [],
+  accionesContextuales: [],
+  recursosContextuales: [],
+  responsablePrincipal: null,
+  responsablesApoyo: [],
+  loadingContexto: false,
+  contextoError: '',
   medidasPrev: '',
   acciones: '',
   recursos: '',
@@ -57,6 +70,83 @@ const getDisplayFunciones = (evaluation) => {
   return [{ funcion: evaluation?.funcion || '', riesgosAsociados: evaluation?.riesgosAsociados || [] }]
 }
 
+const PROBABILIDAD_LABELS = {
+  1: 'Muy baja',
+  2: 'Baja',
+  3: 'Mediana',
+  4: 'Alta',
+  5: 'Muy alta',
+}
+
+const CONSECUENCIA_LABELS = {
+  1: 'Leve',
+  2: 'Moderada',
+  3: 'Grave',
+  4: 'Muy grave',
+  5: 'Mortal / incapacitante',
+}
+
+const toScaleNumber = (value) => {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+const getProbabilidadLabel = (value) => {
+  const numericValue = toScaleNumber(value)
+  return numericValue ? PROBABILIDAD_LABELS[numericValue] || null : null
+}
+
+const getConsecuenciaLabel = (value) => {
+  const numericValue = toScaleNumber(value)
+  return numericValue ? CONSECUENCIA_LABELS[numericValue] || null : null
+}
+
+const getNivelRiesgoLabel = (value) => {
+  const numericValue = toScaleNumber(value)
+  if (!numericValue || numericValue <= 0) return null
+  return classifyRisk(numericValue)
+}
+
+const getProbabilidadDisplay = (value) => {
+  const numericValue = toScaleNumber(value)
+  const label = getProbabilidadLabel(value)
+  if (!numericValue || !label) return value ?? '-'
+  return `${label} (${numericValue})`
+}
+
+const getConsecuenciaDisplay = (value) => {
+  const numericValue = toScaleNumber(value)
+  const label = getConsecuenciaLabel(value)
+  if (!numericValue || !label) return value ?? '-'
+  return `${label} (${numericValue})`
+}
+
+const getNivelRiesgoDisplay = (value) => {
+  const numericValue = toScaleNumber(value)
+  const label = getNivelRiesgoLabel(value)
+  if (!numericValue || !label) return value ?? '-'
+  return `${label} (${numericValue})`
+}
+
+const getCatalogDisplayValues = (risk = {}) => ({
+  medidaPreventiva: risk.medidaPreventivaNombre || risk.medidasPrev || '-',
+  accion: risk.accionNombre || risk.acciones || '-',
+  recurso: Array.isArray(risk.recursosContextuales) && risk.recursosContextuales.length > 0
+    ? risk.recursosContextuales.map((item) => item.nombre).join(', ')
+    : (risk.recursoNombre || risk.recursos || '-'),
+  responsable: risk.responsablePrincipal?.nombre || risk.responsableNombre || risk.responsable || '-',
+})
+
+const PROBABILIDAD_OPTIONS = [1, 2, 3, 4, 5].map((value) => ({
+  value,
+  label: `${PROBABILIDAD_LABELS[value]} (${value})`,
+}))
+
+const CONSECUENCIA_OPTIONS = [1, 2, 3, 4, 5].map((value) => ({
+  value,
+  label: `${CONSECUENCIA_LABELS[value]} (${value})`,
+}))
+
 const hasOnlyOneEmptyFunctionBlock = (funciones = []) => {
   if (!Array.isArray(funciones) || funciones.length !== 1) return false
   const first = funciones[0] || {}
@@ -70,6 +160,10 @@ const hasOnlyOneEmptyFunctionBlock = (funciones = []) => {
     !risk.peligroId &&
     Number(risk.probabilidad || 1) === 1 &&
     Number(risk.consecuencia || 1) === 1 &&
+    !risk.medidaPreventivaId &&
+    !risk.accionId &&
+    !risk.recursoId &&
+    !risk.responsableId &&
     !risk.medidasPrev &&
     !risk.acciones &&
     !risk.recursos &&
@@ -86,14 +180,16 @@ const buildPrintableHtml = (evaluation) => {
     ['Departamento', evaluation.departamento || '-'],
     ['Servicio', evaluation.servicio || '-'],
     ['Puesto', evaluation.puesto || '-'],
-    ['Ubicación física', evaluation.ubicacion || '-'],
+    ['Ubicación', evaluation.ubicacion || '-'],
+    ['Observaciones', evaluation.observaciones || '-'],
   ]
 
   const funcionesHtml = getDisplayFunciones(evaluation)
     .map((funcion, functionIndex) => {
       const risksHtml = (funcion.riesgosAsociados || [])
-        .map(
-          (risk, index) => `
+        .map((risk, index) => {
+          const catalogDisplayValues = getCatalogDisplayValues(risk)
+          return `
       <section class="risk-block">
         <div class="risk-head">
           <div>Riesgo #${index + 1}</div>
@@ -102,22 +198,22 @@ const buildPrintableHtml = (evaluation) => {
         <div class="risk-grid">
           <div class="print-field"><div class="label">Riesgo</div><div class="value">${risk.riesgo || '-'}</div></div>
           <div class="print-field"><div class="label">Peligro</div><div class="value">${risk.peligro || '-'}</div></div>
-          <div class="print-field"><div class="label">Probabilidad</div><div class="value">${risk.probabilidad ?? '-'}</div></div>
-          <div class="print-field"><div class="label">Consecuencia</div><div class="value">${risk.consecuencia ?? '-'}</div></div>
-          <div class="print-field"><div class="label">Nivel</div><div class="value">${risk.nivel ?? '-'}</div></div>
+          <div class="print-field"><div class="label">Probabilidad</div><div class="value">${getProbabilidadDisplay(risk.probabilidad)}</div></div>
+          <div class="print-field"><div class="label">Consecuencia</div><div class="value">${getConsecuenciaDisplay(risk.consecuencia)}</div></div>
+          <div class="print-field"><div class="label">Nivel de Riesgo</div><div class="value">${getNivelRiesgoDisplay(risk.nivel)}</div></div>
           <div class="print-field"><div class="label">Clasificación</div><div class="value">${risk.clasificacion || '-'}</div></div>
-          <div class="print-field full"><div class="label">Medidas Preventivas</div><div class="value">${risk.medidasPrev || '-'}</div></div>
-          <div class="print-field full"><div class="label">Acciones</div><div class="value">${risk.acciones || '-'}</div></div>
-          <div class="print-field full"><div class="label">Recursos</div><div class="value">${risk.recursos || '-'}</div></div>
+          <div class="print-field full"><div class="label">Medidas Preventivas</div><div class="value">${catalogDisplayValues.medidaPreventiva}</div></div>
+          <div class="print-field full"><div class="label">Acciones</div><div class="value">${catalogDisplayValues.accion}</div></div>
+          <div class="print-field full"><div class="label">Recursos</div><div class="value">${catalogDisplayValues.recurso}</div></div>
         </div>
         <div class="risk-grid-3">
           <div class="print-field"><div class="label">Fecha de cumplimiento</div><div class="value">${formatDate(risk.fechaCumplimiento) || '-'}</div></div>
-          <div class="print-field"><div class="label">Responsable</div><div class="value">${risk.responsable || '-'}</div></div>
+          <div class="print-field"><div class="label">Responsable</div><div class="value">${catalogDisplayValues.responsable}</div></div>
           <div class="print-field"><div class="label">Estado</div><div class="value">${risk.estado || '-'}</div></div>
         </div>
       </section>
     `
-        )
+        })
         .join('')
 
       return `
@@ -275,6 +371,7 @@ const openPrintableWindow = (evaluation, win = null) => {
 
 const MatrizPage = () => {
   const { matriz, catalogos, createEvaluacion, updateEvaluacion, deleteEvaluacion } = useData()
+  const contextoRequestsRef = useRef({})
   const [modalOpen, setModalOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
@@ -438,12 +535,360 @@ const MatrizPage = () => {
       const riesgos = [...(funcion.riesgosAsociados || [])]
       const current = riesgos[riesgoIndex] || createRiesgoAsociado()
       const next = { ...current, [field]: value }
-      if (field === 'riesgoId') next.peligroId = ''
+      if (field === 'riesgoId') {
+        next.peligroId = ''
+        next.peligroMedidaId = ''
+        next.peligroMedidaAccionId = ''
+        next.medidaPreventivaId = ''
+        next.accionId = ''
+        next.recursoId = ''
+        next.responsableId = ''
+        next.medidasContextuales = []
+        next.accionesContextuales = []
+        next.recursosContextuales = []
+        next.responsablePrincipal = null
+        next.responsablesApoyo = []
+        next.medidasPrev = ''
+        next.acciones = ''
+        next.recursos = ''
+        next.responsable = ''
+        next.contextoError = ''
+        next.loadingContexto = false
+      }
       riesgos[riesgoIndex] = next
       funciones[funcionIndex] = { ...funcion, riesgosAsociados: riesgos }
       return { ...prev, funciones }
     })
   }
+
+  const getRiskKey = useCallback((funcionIndex, riesgoIndex) => `${funcionIndex}-${riesgoIndex}`, [])
+
+  const normalizeContextualMedidas = useCallback((response) => {
+    const medidas = Array.isArray(response?.medidas) ? response.medidas : []
+    return medidas
+      .map((item) => ({
+        peligroMedidaId: item?.peligroMedidaId != null ? String(item.peligroMedidaId) : '',
+        medidaPreventivaId: item?.medidaPreventivaId != null ? String(item.medidaPreventivaId) : '',
+        nombre: item?.nombre || '',
+      }))
+      .filter((item) => item.peligroMedidaId && item.medidaPreventivaId && item.nombre)
+  }, [])
+
+  const normalizeContextualAcciones = useCallback((response) => {
+    const acciones = Array.isArray(response?.acciones) ? response.acciones : []
+    return acciones
+      .map((item) => ({
+        peligroMedidaAccionId: item?.peligroMedidaAccionId != null ? String(item.peligroMedidaAccionId) : '',
+        accionId: item?.accionId != null ? String(item.accionId) : '',
+        nombre: item?.nombre || '',
+      }))
+      .filter((item) => item.peligroMedidaAccionId && item.accionId && item.nombre)
+  }, [])
+
+  const normalizeConfiguracion = useCallback((response) => {
+    const recursosContextuales = Array.isArray(response?.recursos)
+      ? response.recursos
+        .map((item) => ({
+          id: item?.id != null ? String(item.id) : '',
+          nombre: item?.nombre || '',
+        }))
+        .filter((item) => item.id && item.nombre)
+      : []
+
+    const responsablePrincipal = response?.responsablePrincipal && response.responsablePrincipal.id != null
+      ? {
+        id: String(response.responsablePrincipal.id),
+        nombre: response.responsablePrincipal.nombre || '',
+      }
+      : null
+
+    const responsablesApoyo = Array.isArray(response?.responsablesApoyo)
+      ? response.responsablesApoyo
+        .map((item) => ({
+          id: item?.id != null ? String(item.id) : '',
+          nombre: item?.nombre || '',
+        }))
+        .filter((item) => item.id && item.nombre)
+      : []
+
+    return {
+      recursosContextuales,
+      responsablePrincipal,
+      responsablesApoyo,
+      medidaNombre: response?.medida?.nombre || '',
+      accionNombre: response?.accion?.nombre || '',
+    }
+  }, [])
+
+  const handlePeligroChange = useCallback(async (funcionIndex, riesgoIndex, peligroId) => {
+    setValues((prev) => {
+      const funciones = [...(prev.funciones || [])]
+      const funcion = funciones[funcionIndex] || createFuncionBloque()
+      const riesgos = [...(funcion.riesgosAsociados || [])]
+      const current = riesgos[riesgoIndex] || createRiesgoAsociado()
+
+      riesgos[riesgoIndex] = {
+        ...current,
+        peligroId,
+        peligroMedidaId: '',
+        peligroMedidaAccionId: '',
+        medidaPreventivaId: '',
+        accionId: '',
+        recursoId: '',
+        responsableId: '',
+        medidasContextuales: [],
+        accionesContextuales: [],
+        recursosContextuales: [],
+        responsablePrincipal: null,
+        responsablesApoyo: [],
+        medidasPrev: '',
+        acciones: '',
+        recursos: '',
+        responsable: '',
+        contextoError: '',
+        loadingContexto: Boolean(peligroId),
+      }
+
+      funciones[funcionIndex] = { ...funcion, riesgosAsociados: riesgos }
+      return { ...prev, funciones }
+    })
+
+    if (!peligroId) return
+
+    const riskKey = getRiskKey(funcionIndex, riesgoIndex)
+    const requestToken = `${Date.now()}-${Math.random()}`
+    contextoRequestsRef.current[riskKey] = requestToken
+
+    try {
+      const response = await matrizService.getMedidasByPeligro(peligroId)
+      if (contextoRequestsRef.current[riskKey] !== requestToken) return
+
+      const medidasContextuales = normalizeContextualMedidas(response)
+
+      setValues((prev) => {
+        const funciones = [...(prev.funciones || [])]
+        const funcion = funciones[funcionIndex] || createFuncionBloque()
+        const riesgos = [...(funcion.riesgosAsociados || [])]
+        const current = riesgos[riesgoIndex] || createRiesgoAsociado()
+
+        if (String(current.peligroId) !== String(peligroId)) return prev
+
+        riesgos[riesgoIndex] = {
+          ...current,
+          medidasContextuales,
+          loadingContexto: false,
+          contextoError: '',
+        }
+        funciones[funcionIndex] = { ...funcion, riesgosAsociados: riesgos }
+        return { ...prev, funciones }
+      })
+    } catch {
+      if (contextoRequestsRef.current[riskKey] !== requestToken) return
+
+      setValues((prev) => {
+        const funciones = [...(prev.funciones || [])]
+        const funcion = funciones[funcionIndex] || createFuncionBloque()
+        const riesgos = [...(funcion.riesgosAsociados || [])]
+        const current = riesgos[riesgoIndex] || createRiesgoAsociado()
+        if (String(current.peligroId) !== String(peligroId)) return prev
+
+        riesgos[riesgoIndex] = {
+          ...current,
+          loadingContexto: false,
+          medidasContextuales: [],
+          contextoError: 'No se pudieron cargar las medidas contextuales para el peligro seleccionado.',
+        }
+        funciones[funcionIndex] = { ...funcion, riesgosAsociados: riesgos }
+        return { ...prev, funciones }
+      })
+    }
+  }, [getRiskKey, normalizeContextualMedidas, setValues])
+
+  const handleMedidaChange = useCallback(async (funcionIndex, riesgoIndex, peligroMedidaId) => {
+    let peligroMedidaOption = null
+
+    setValues((prev) => {
+      const funciones = [...(prev.funciones || [])]
+      const funcion = funciones[funcionIndex] || createFuncionBloque()
+      const riesgos = [...(funcion.riesgosAsociados || [])]
+      const current = riesgos[riesgoIndex] || createRiesgoAsociado()
+
+      peligroMedidaOption = (current.medidasContextuales || []).find(
+        (item) => String(item.peligroMedidaId) === String(peligroMedidaId)
+      ) || null
+
+      riesgos[riesgoIndex] = {
+        ...current,
+        peligroMedidaId,
+        medidaPreventivaId: peligroMedidaOption?.medidaPreventivaId || '',
+        medidasPrev: peligroMedidaOption?.nombre || '',
+        peligroMedidaAccionId: '',
+        accionId: '',
+        acciones: '',
+        recursoId: '',
+        responsableId: '',
+        recursos: '',
+        responsable: '',
+        accionesContextuales: [],
+        recursosContextuales: [],
+        responsablePrincipal: null,
+        responsablesApoyo: [],
+        contextoError: '',
+        loadingContexto: Boolean(peligroMedidaId),
+      }
+
+      funciones[funcionIndex] = { ...funcion, riesgosAsociados: riesgos }
+      return { ...prev, funciones }
+    })
+
+    if (!peligroMedidaId) return
+
+    const riskKey = getRiskKey(funcionIndex, riesgoIndex)
+    const requestToken = `${Date.now()}-${Math.random()}`
+    contextoRequestsRef.current[riskKey] = requestToken
+
+    try {
+      const response = await matrizService.getAccionesByPeligroMedida(peligroMedidaId)
+      if (contextoRequestsRef.current[riskKey] !== requestToken) return
+
+      const accionesContextuales = normalizeContextualAcciones(response)
+
+      setValues((prev) => {
+        const funciones = [...(prev.funciones || [])]
+        const funcion = funciones[funcionIndex] || createFuncionBloque()
+        const riesgos = [...(funcion.riesgosAsociados || [])]
+        const current = riesgos[riesgoIndex] || createRiesgoAsociado()
+
+        if (String(current.peligroMedidaId) !== String(peligroMedidaId)) return prev
+
+        riesgos[riesgoIndex] = {
+          ...current,
+          accionesContextuales,
+          loadingContexto: false,
+          contextoError: '',
+        }
+        funciones[funcionIndex] = { ...funcion, riesgosAsociados: riesgos }
+        return { ...prev, funciones }
+      })
+    } catch {
+      if (contextoRequestsRef.current[riskKey] !== requestToken) return
+
+      setValues((prev) => {
+        const funciones = [...(prev.funciones || [])]
+        const funcion = funciones[funcionIndex] || createFuncionBloque()
+        const riesgos = [...(funcion.riesgosAsociados || [])]
+        const current = riesgos[riesgoIndex] || createRiesgoAsociado()
+        if (String(current.peligroMedidaId) !== String(peligroMedidaId)) return prev
+
+        riesgos[riesgoIndex] = {
+          ...current,
+          loadingContexto: false,
+          accionesContextuales: [],
+          contextoError: 'No se pudieron cargar las acciones contextuales para la medida seleccionada.',
+        }
+        funciones[funcionIndex] = { ...funcion, riesgosAsociados: riesgos }
+        return { ...prev, funciones }
+      })
+    }
+  }, [getRiskKey, normalizeContextualAcciones, setValues])
+
+  const handleAccionChange = useCallback(async (funcionIndex, riesgoIndex, peligroMedidaAccionId) => {
+    let accionOption = null
+
+    setValues((prev) => {
+      const funciones = [...(prev.funciones || [])]
+      const funcion = funciones[funcionIndex] || createFuncionBloque()
+      const riesgos = [...(funcion.riesgosAsociados || [])]
+      const current = riesgos[riesgoIndex] || createRiesgoAsociado()
+
+      accionOption = (current.accionesContextuales || []).find(
+        (item) => String(item.peligroMedidaAccionId) === String(peligroMedidaAccionId)
+      ) || null
+
+      riesgos[riesgoIndex] = {
+        ...current,
+        peligroMedidaAccionId,
+        accionId: accionOption?.accionId || '',
+        acciones: accionOption?.nombre || '',
+        recursoId: '',
+        responsableId: '',
+        recursos: '',
+        responsable: '',
+        recursosContextuales: [],
+        responsablePrincipal: null,
+        responsablesApoyo: [],
+        contextoError: '',
+        loadingContexto: Boolean(peligroMedidaAccionId),
+      }
+
+      funciones[funcionIndex] = { ...funcion, riesgosAsociados: riesgos }
+      return { ...prev, funciones }
+    })
+
+    if (!peligroMedidaAccionId) return
+
+    const riskKey = getRiskKey(funcionIndex, riesgoIndex)
+    const requestToken = `${Date.now()}-${Math.random()}`
+    contextoRequestsRef.current[riskKey] = requestToken
+
+    try {
+      const response = await matrizService.getConfiguracionByAccion(peligroMedidaAccionId)
+      if (contextoRequestsRef.current[riskKey] !== requestToken) return
+
+      const configuracion = normalizeConfiguracion(response)
+
+      setValues((prev) => {
+        const funciones = [...(prev.funciones || [])]
+        const funcion = funciones[funcionIndex] || createFuncionBloque()
+        const riesgos = [...(funcion.riesgosAsociados || [])]
+        const current = riesgos[riesgoIndex] || createRiesgoAsociado()
+
+        if (String(current.peligroMedidaAccionId) !== String(peligroMedidaAccionId)) return prev
+
+        riesgos[riesgoIndex] = {
+          ...current,
+          recursosContextuales: configuracion.recursosContextuales,
+          responsablePrincipal: configuracion.responsablePrincipal,
+          responsablesApoyo: configuracion.responsablesApoyo,
+          recursoId: configuracion.recursosContextuales[0]?.id || '',
+          responsableId: configuracion.responsablePrincipal?.id || '',
+          recursos: configuracion.recursosContextuales.map((item) => item.nombre).join(', '),
+          responsable: configuracion.responsablePrincipal?.nombre || '',
+          medidasPrev: configuracion.medidaNombre || current.medidasPrev || '',
+          acciones: configuracion.accionNombre || current.acciones || '',
+          loadingContexto: false,
+          contextoError: '',
+        }
+        funciones[funcionIndex] = { ...funcion, riesgosAsociados: riesgos }
+        return { ...prev, funciones }
+      })
+    } catch {
+      if (contextoRequestsRef.current[riskKey] !== requestToken) return
+
+      setValues((prev) => {
+        const funciones = [...(prev.funciones || [])]
+        const funcion = funciones[funcionIndex] || createFuncionBloque()
+        const riesgos = [...(funcion.riesgosAsociados || [])]
+        const current = riesgos[riesgoIndex] || createRiesgoAsociado()
+        if (String(current.peligroMedidaAccionId) !== String(peligroMedidaAccionId)) return prev
+
+        riesgos[riesgoIndex] = {
+          ...current,
+          loadingContexto: false,
+          recursosContextuales: [],
+          responsablePrincipal: null,
+          responsablesApoyo: [],
+          recursoId: '',
+          responsableId: '',
+          recursos: '',
+          responsable: '',
+          contextoError: 'No se pudo cargar la configuración contextual de la acción seleccionada.',
+        }
+        funciones[funcionIndex] = { ...funcion, riesgosAsociados: riesgos }
+        return { ...prev, funciones }
+      })
+    }
+  }, [getRiskKey, normalizeConfiguracion, setValues])
 
   const addFuncionBloque = () => {
     setValues((prev) => ({
@@ -499,7 +944,7 @@ const MatrizPage = () => {
     if (values.departamentoId && !departamentoOptions.some((item) => String(item.value) === String(values.departamentoId))) {
       setValues((prev) => ({ ...prev, departamentoId: '', servicioId: '', puestoId: '', funciones: [createFuncionBloque()] }))
     }
-  }, [departamentoOptions, setValues, values.departamentoId, values.puestoId, values.servicioId, values.subDireccionId])
+  }, [departamentoOptions, setValues, values.departamentoId, values.funciones, values.puestoId, values.servicioId, values.subDireccionId])
 
   useEffect(() => {
     if (!values.departamentoId) {
@@ -514,7 +959,7 @@ const MatrizPage = () => {
     if (values.servicioId && !servicioOptions.some((item) => String(item.value) === String(values.servicioId))) {
       setValues((prev) => ({ ...prev, servicioId: '', puestoId: '', funciones: [createFuncionBloque()] }))
     }
-  }, [servicioOptions, setValues, values.departamentoId, values.puestoId, values.servicioId])
+  }, [servicioOptions, setValues, values.departamentoId, values.funciones, values.puestoId, values.servicioId])
 
   useEffect(() => {
     if (!values.servicioId) {
@@ -529,7 +974,7 @@ const MatrizPage = () => {
     if (values.puestoId && !puestoOptions.some((item) => String(item.value) === String(values.puestoId))) {
       setValues((prev) => ({ ...prev, puestoId: '', funciones: [createFuncionBloque()] }))
     }
-  }, [puestoOptions, setValues, values.puestoId, values.servicioId])
+  }, [puestoOptions, setValues, values.funciones, values.puestoId, values.servicioId])
 
   useEffect(() => {
     if (!values.puestoId) {
@@ -563,7 +1008,28 @@ const MatrizPage = () => {
         const riesgoValido = riesgoOptions.some((opt) => String(opt.value) === String(item.riesgoId))
         if (!riesgoValido) {
           if (item.riesgoId || item.peligroId) hasChanges = true
-          return { ...item, riesgoId: '', peligroId: '' }
+          return {
+            ...item,
+            riesgoId: '',
+            peligroId: '',
+            peligroMedidaId: '',
+            peligroMedidaAccionId: '',
+            medidaPreventivaId: '',
+            accionId: '',
+            recursoId: '',
+            responsableId: '',
+            medidasContextuales: [],
+            accionesContextuales: [],
+            recursosContextuales: [],
+            responsablePrincipal: null,
+            responsablesApoyo: [],
+            medidasPrev: '',
+            acciones: '',
+            recursos: '',
+            responsable: '',
+            contextoError: '',
+            loadingContexto: false,
+          }
         }
 
         const peligrosPermitidos = getPeligroOptionsByRiesgoId(item.riesgoId)
@@ -571,7 +1037,27 @@ const MatrizPage = () => {
 
         if (!peligroValido && item.peligroId) {
           hasChanges = true
-          return { ...item, peligroId: '' }
+          return {
+            ...item,
+            peligroId: '',
+            peligroMedidaId: '',
+            peligroMedidaAccionId: '',
+            medidaPreventivaId: '',
+            accionId: '',
+            recursoId: '',
+            responsableId: '',
+            medidasContextuales: [],
+            accionesContextuales: [],
+            recursosContextuales: [],
+            responsablePrincipal: null,
+            responsablesApoyo: [],
+            medidasPrev: '',
+            acciones: '',
+            recursos: '',
+            responsable: '',
+            contextoError: '',
+            loadingContexto: false,
+          }
         }
 
         return item
@@ -647,6 +1133,52 @@ const MatrizPage = () => {
           peligroId: risk.peligroId || '',
           probabilidad: risk.probabilidad || 1,
           consecuencia: risk.consecuencia || 1,
+          peligroMedidaId: risk.peligroMedidaId != null ? String(risk.peligroMedidaId) : '',
+          peligroMedidaAccionId: risk.peligroMedidaAccionId != null ? String(risk.peligroMedidaAccionId) : '',
+          medidaPreventivaId: risk.medidaPreventivaId ?? '',
+          accionId: risk.accionId ?? '',
+          recursoId: risk.recursoId ?? '',
+          responsableId: risk.responsableId ?? '',
+          medidasContextuales:
+            risk.medidaPreventivaId != null && (risk.medidaPreventivaNombre || risk.medidasPrev)
+              ? [{
+                peligroMedidaId: risk.peligroMedidaId != null ? String(risk.peligroMedidaId) : '',
+                medidaPreventivaId: String(risk.medidaPreventivaId),
+                nombre: risk.medidaPreventivaNombre || risk.medidasPrev,
+              }].filter((contextItem) => contextItem.peligroMedidaId && contextItem.medidaPreventivaId && contextItem.nombre)
+              : [],
+          accionesContextuales:
+            risk.peligroMedidaAccionId != null && risk.accionId != null && (risk.accionNombre || risk.acciones)
+              ? [{
+                peligroMedidaAccionId: String(risk.peligroMedidaAccionId),
+                accionId: String(risk.accionId),
+                nombre: risk.accionNombre || risk.acciones,
+              }]
+              : [],
+          recursosContextuales: Array.isArray(risk.recursosContextuales)
+            ? risk.recursosContextuales
+              .map((contextItem) => ({
+                id: contextItem?.id != null ? String(contextItem.id) : '',
+                nombre: contextItem?.nombre || '',
+              }))
+              .filter((contextItem) => contextItem.id && contextItem.nombre)
+            : [],
+          responsablePrincipal: risk.responsablePrincipal && risk.responsablePrincipal.id != null
+            ? {
+              id: String(risk.responsablePrincipal.id),
+              nombre: risk.responsablePrincipal.nombre || '',
+            }
+            : null,
+          responsablesApoyo: Array.isArray(risk.responsablesApoyo)
+            ? risk.responsablesApoyo
+              .map((contextItem) => ({
+                id: contextItem?.id != null ? String(contextItem.id) : '',
+                nombre: contextItem?.nombre || '',
+              }))
+              .filter((contextItem) => contextItem.id && contextItem.nombre)
+            : [],
+          loadingContexto: false,
+          contextoError: '',
           medidasPrev: risk.medidasPrev || '',
           acciones: risk.acciones || '',
           recursos: risk.recursos || '',
@@ -657,13 +1189,191 @@ const MatrizPage = () => {
       })),
       observaciones: detail.observaciones || '',
     })
+
+    const hydrateContexto = async () => {
+      for (let funcionIndex = 0; funcionIndex < funciones.length; funcionIndex += 1) {
+        const riesgosAsociados = funciones[funcionIndex]?.riesgosAsociados || []
+
+        for (let riskIndex = 0; riskIndex < riesgosAsociados.length; riskIndex += 1) {
+          const risk = riesgosAsociados[riskIndex]
+          if (!risk?.peligroId) continue
+
+          const peligroId = String(risk.peligroId)
+          const peligroMedidaId = risk.peligroMedidaId != null && risk.peligroMedidaId !== ''
+            ? String(risk.peligroMedidaId)
+            : ''
+          const medidaPreventivaId = risk.medidaPreventivaId != null && risk.medidaPreventivaId !== ''
+            ? String(risk.medidaPreventivaId)
+            : ''
+          const peligroMedidaAccionId = risk.peligroMedidaAccionId != null && risk.peligroMedidaAccionId !== ''
+            ? String(risk.peligroMedidaAccionId)
+            : ''
+
+          const riskKey = getRiskKey(funcionIndex, riskIndex)
+          const requestToken = `${Date.now()}-${Math.random()}`
+          contextoRequestsRef.current[riskKey] = requestToken
+
+          setValues((prev) => {
+            const nextFunciones = [...(prev.funciones || [])]
+            const nextFuncion = nextFunciones[funcionIndex] || createFuncionBloque()
+            const nextRiesgos = [...(nextFuncion.riesgosAsociados || [])]
+            const current = nextRiesgos[riskIndex] || createRiesgoAsociado()
+
+            nextRiesgos[riskIndex] = {
+              ...current,
+              loadingContexto: true,
+              contextoError: '',
+            }
+
+            nextFunciones[funcionIndex] = { ...nextFuncion, riesgosAsociados: nextRiesgos }
+            return { ...prev, funciones: nextFunciones }
+          })
+
+          try {
+            const medidasResponse = await matrizService.getMedidasByPeligro(peligroId)
+            if (contextoRequestsRef.current[riskKey] !== requestToken) continue
+
+            const medidasContextuales = normalizeContextualMedidas(medidasResponse)
+
+            const medidaRelacion = medidasContextuales.find(
+              (item) => String(item.medidaPreventivaId) === String(medidaPreventivaId)
+            ) || null
+
+            const peligroMedidaIdResuelto =
+              peligroMedidaId || medidaRelacion?.peligroMedidaId || ''
+
+            let accionesContextuales = []
+            if (peligroMedidaIdResuelto) {
+              const accionesResponse = await matrizService.getAccionesByPeligroMedida(peligroMedidaIdResuelto)
+              if (contextoRequestsRef.current[riskKey] !== requestToken) continue
+              accionesContextuales = normalizeContextualAcciones(accionesResponse)
+            }
+
+            let recursosContextuales = []
+            let responsablePrincipal = null
+            let responsablesApoyo = []
+            let medidaNombreFromConfig = ''
+            let accionNombreFromConfig = ''
+
+            if (peligroMedidaAccionId) {
+              const configuracionResponse = await matrizService.getConfiguracionByAccion(peligroMedidaAccionId)
+              if (contextoRequestsRef.current[riskKey] !== requestToken) continue
+
+              const configuracion = normalizeConfiguracion(configuracionResponse)
+              recursosContextuales = configuracion.recursosContextuales
+              responsablePrincipal = configuracion.responsablePrincipal
+              responsablesApoyo = configuracion.responsablesApoyo
+              medidaNombreFromConfig = configuracion.medidaNombre
+              accionNombreFromConfig = configuracion.accionNombre
+            }
+
+            setValues((prev) => {
+              const nextFunciones = [...(prev.funciones || [])]
+              const nextFuncion = nextFunciones[funcionIndex] || createFuncionBloque()
+              const nextRiesgos = [...(nextFuncion.riesgosAsociados || [])]
+              const current = nextRiesgos[riskIndex] || createRiesgoAsociado()
+
+              const medidaSeleccionada = medidasContextuales.find(
+                (item) => String(item.peligroMedidaId) === String(current.peligroMedidaId || peligroMedidaIdResuelto)
+              ) || null
+
+              const accionSeleccionada = accionesContextuales.find(
+                (item) => String(item.peligroMedidaAccionId) === String(current.peligroMedidaAccionId || peligroMedidaAccionId)
+              ) || null
+
+              nextRiesgos[riskIndex] = {
+                ...current,
+                peligroId,
+                peligroMedidaId: current.peligroMedidaId || peligroMedidaIdResuelto,
+                peligroMedidaAccionId: current.peligroMedidaAccionId || peligroMedidaAccionId,
+                medidaPreventivaId: current.medidaPreventivaId || medidaSeleccionada?.medidaPreventivaId || '',
+                accionId: current.accionId || accionSeleccionada?.accionId || '',
+                medidasContextuales,
+                accionesContextuales,
+                recursosContextuales,
+                responsablePrincipal,
+                responsablesApoyo,
+                medidasPrev: medidaNombreFromConfig || medidaSeleccionada?.nombre || current.medidasPrev || '',
+                acciones: accionNombreFromConfig || accionSeleccionada?.nombre || current.acciones || '',
+                recursos:
+                  recursosContextuales.length > 0
+                    ? recursosContextuales.map((item) => item.nombre).join(', ')
+                    : (current.recursos || ''),
+                responsable: responsablePrincipal?.nombre || current.responsable || '',
+                recursoId: current.recursoId || recursosContextuales[0]?.id || '',
+                responsableId: current.responsableId || responsablePrincipal?.id || '',
+                loadingContexto: false,
+                contextoError: '',
+              }
+
+              nextFunciones[funcionIndex] = { ...nextFuncion, riesgosAsociados: nextRiesgos }
+              return { ...prev, funciones: nextFunciones }
+            })
+          } catch {
+            if (contextoRequestsRef.current[riskKey] !== requestToken) continue
+
+            setValues((prev) => {
+              const nextFunciones = [...(prev.funciones || [])]
+              const nextFuncion = nextFunciones[funcionIndex] || createFuncionBloque()
+              const nextRiesgos = [...(nextFuncion.riesgosAsociados || [])]
+              const current = nextRiesgos[riskIndex] || createRiesgoAsociado()
+
+              nextRiesgos[riskIndex] = {
+                ...current,
+                loadingContexto: false,
+                contextoError: 'No se pudo rehidratar la configuración contextual en edición.',
+              }
+
+              nextFunciones[funcionIndex] = { ...nextFuncion, riesgosAsociados: nextRiesgos }
+              return { ...prev, funciones: nextFunciones }
+            })
+          }
+        }
+      }
+    }
+
+    void hydrateContexto()
     setModalOpen(true)
   }
 
   const onSubmit = async (formValues) => {
+    const normalizedFunciones = (formValues.funciones || []).map((funcion) => ({
+      ...funcion,
+      riesgosAsociados: (funcion.riesgosAsociados || []).map((nextRisk) => {
+        const normalizedRisk = { ...nextRisk }
+
+        const parseNullableNumber = (value) => {
+          if (value === '' || value === null || value === undefined) return null
+          const safeValue = Number(value)
+          return Number.isNaN(safeValue) ? null : safeValue
+        }
+
+        normalizedRisk.medidaPreventivaId = parseNullableNumber(nextRisk.medidaPreventivaId)
+        normalizedRisk.accionId = parseNullableNumber(nextRisk.accionId)
+        normalizedRisk.recursoId = parseNullableNumber(nextRisk.recursoId)
+        normalizedRisk.responsableId = parseNullableNumber(nextRisk.responsableId)
+        normalizedRisk.peligroMedidaAccionId = parseNullableNumber(nextRisk.peligroMedidaAccionId)
+
+        delete normalizedRisk.medidasPrev
+        delete normalizedRisk.acciones
+        delete normalizedRisk.recursos
+        delete normalizedRisk.responsable
+        delete normalizedRisk.peligroMedidaId
+        delete normalizedRisk.medidasContextuales
+        delete normalizedRisk.accionesContextuales
+        delete normalizedRisk.recursosContextuales
+        delete normalizedRisk.responsablePrincipal
+        delete normalizedRisk.responsablesApoyo
+        delete normalizedRisk.loadingContexto
+        delete normalizedRisk.contextoError
+
+        return normalizedRisk
+      }),
+    }))
+
     const payload = {
       ...formValues,
-      funciones: formValues.funciones || [],
+      funciones: normalizedFunciones,
     }
 
     if (editingItem) {
@@ -888,7 +1598,9 @@ const MatrizPage = () => {
                             <SelectField
                               label="Peligro"
                               value={item.peligroId}
-                              onChange={(e) => updateRiesgoAsociado(funcionIndex, riskIndex, 'peligroId', e.target.value)}
+                              onChange={(e) => {
+                                void handlePeligroChange(funcionIndex, riskIndex, e.target.value)
+                              }}
                               error={blockErrors.peligroId}
                               disabled={!item.riesgoId}
                               options={[{ value: '', label: 'Seleccione un peligro' }, ...peligroOptions]}
@@ -898,54 +1610,86 @@ const MatrizPage = () => {
                               value={item.probabilidad}
                               onChange={(e) => updateRiesgoAsociado(funcionIndex, riskIndex, 'probabilidad', Number(e.target.value))}
                               error={blockErrors.probabilidad}
-                              options={catalogos.escalasProbabilidad}
+                              options={PROBABILIDAD_OPTIONS}
                             />
                             <SelectField
                               label="Consecuencia"
                               value={item.consecuencia}
                               onChange={(e) => updateRiesgoAsociado(funcionIndex, riskIndex, 'consecuencia', Number(e.target.value))}
                               error={blockErrors.consecuencia}
-                              options={catalogos.escalasConsecuencia}
+                              options={CONSECUENCIA_OPTIONS}
                             />
-                            <InputField label="Nivel de riesgo" value={nivel} readOnly />
+                            <InputField label="Nivel de riesgo" value={getNivelRiesgoDisplay(nivel)} readOnly />
                             <InputField label="Clasificación" value={clasificacion} readOnly />
                           </div>
 
-                          <label className="block">
-                            <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">Medidas preventivas</span>
-                            <textarea
-                              rows="3"
-                              value={item.medidasPrev || ''}
-                              onChange={(e) => updateRiesgoAsociado(funcionIndex, riskIndex, 'medidasPrev', e.target.value)}
-                              maxLength={2000}
-                              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-700"
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <SelectField
+                              label="Medida Preventiva"
+                              value={item.peligroMedidaId ?? ''}
+                              onChange={(e) => {
+                                void handleMedidaChange(funcionIndex, riskIndex, e.target.value)
+                              }}
+                              error={blockErrors.medidaPreventivaId}
+                              disabled={!item.peligroId || item.loadingContexto || (item.medidasContextuales || []).length === 0}
+                              options={[
+                                { value: '', label: item.loadingContexto ? 'Cargando...' : 'Seleccione...' },
+                                ...((item.medidasContextuales || []).map((contextItem) => ({
+                                  value: String(contextItem.peligroMedidaId),
+                                  label: contextItem.nombre,
+                                }))),
+                              ]}
                             />
-                            {blockErrors.medidasPrev && <span className="mt-1 block text-xs text-danger">{blockErrors.medidasPrev}</span>}
-                          </label>
+                            <SelectField
+                              label="Acción"
+                              value={item.peligroMedidaAccionId ?? ''}
+                              onChange={(e) => {
+                                void handleAccionChange(funcionIndex, riskIndex, e.target.value)
+                              }}
+                              error={blockErrors.accionId}
+                              disabled={!item.peligroMedidaId || item.loadingContexto || (item.accionesContextuales || []).length === 0}
+                              options={[
+                                { value: '', label: item.loadingContexto ? 'Cargando...' : 'Seleccione...' },
+                                ...((item.accionesContextuales || []).map((contextItem) => ({
+                                  value: String(contextItem.peligroMedidaAccionId),
+                                  label: contextItem.nombre,
+                                }))),
+                              ]}
+                            />
 
-                          <label className="block">
-                            <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">Acciones</span>
-                            <textarea
-                              rows="3"
-                              value={item.acciones || ''}
-                              onChange={(e) => updateRiesgoAsociado(funcionIndex, riskIndex, 'acciones', e.target.value)}
-                              maxLength={2000}
-                              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-700"
-                            />
-                            {blockErrors.acciones && <span className="mt-1 block text-xs text-danger">{blockErrors.acciones}</span>}
-                          </label>
+                            <div className="space-y-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900/30">
+                              <div className="text-xs font-semibold uppercase text-gray-500">Recursos contextuales</div>
+                              {(item.recursosContextuales || []).length > 0 ? (
+                                <ul className="list-disc pl-4 text-sm text-gray-800 dark:text-gray-100">
+                                  {(item.recursosContextuales || []).map((recurso) => (
+                                    <li key={`recurso-${recurso.id}`}>{recurso.nombre}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <div className="text-sm text-gray-500">Sin recursos contextuales</div>
+                              )}
+                            </div>
 
-                          <label className="block">
-                            <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">Recursos</span>
-                            <textarea
-                              rows="3"
-                              value={item.recursos || ''}
-                              onChange={(e) => updateRiesgoAsociado(funcionIndex, riskIndex, 'recursos', e.target.value)}
-                              maxLength={2000}
-                              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-700"
-                            />
-                            {blockErrors.recursos && <span className="mt-1 block text-xs text-danger">{blockErrors.recursos}</span>}
-                          </label>
+                            <div className="space-y-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900/30">
+                              <div className="text-xs font-semibold uppercase text-gray-500">Responsable principal</div>
+                              <div className="text-sm text-gray-800 dark:text-gray-100">{item.responsablePrincipal?.nombre || 'Sin responsable principal'}</div>
+                            </div>
+
+                            <div className="space-y-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900/30 md:col-span-2">
+                              <div className="text-xs font-semibold uppercase text-gray-500">Responsables de apoyo</div>
+                              {(item.responsablesApoyo || []).length > 0 ? (
+                                <ul className="list-disc pl-4 text-sm text-gray-800 dark:text-gray-100">
+                                  {(item.responsablesApoyo || []).map((responsableApoyo) => (
+                                    <li key={`responsable-apoyo-${responsableApoyo.id}`}>{responsableApoyo.nombre}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <div className="text-sm text-gray-500">Sin responsables de apoyo</div>
+                              )}
+                            </div>
+                          </div>
+
+                          {item.contextoError && <span className="block text-xs text-danger">{item.contextoError}</span>}
 
                           <div className="grid gap-3 md:grid-cols-3">
                             <InputField
@@ -955,17 +1699,6 @@ const MatrizPage = () => {
                               onChange={(e) => updateRiesgoAsociado(funcionIndex, riskIndex, 'fechaCumplimiento', e.target.value)}
                               error={blockErrors.fechaCumplimiento}
                             />
-                            <label className="block md:col-span-1">
-                              <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">Responsable</span>
-                              <textarea
-                                rows="2"
-                                value={item.responsable || ''}
-                                onChange={(e) => updateRiesgoAsociado(funcionIndex, riskIndex, 'responsable', e.target.value)}
-                                maxLength={2000}
-                                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-700"
-                              />
-                              {blockErrors.responsable && <span className="mt-1 block text-xs text-danger">{blockErrors.responsable}</span>}
-                            </label>
                             <SelectField
                               label="Estado"
                               value={item.estado || 'pendiente'}
@@ -1045,61 +1778,73 @@ const MatrizPage = () => {
                 </div>
               </div>
 
-              {getDisplayFunciones(selectedEvaluation).map((funcion, funcionIndex) => (
-                <div key={funcion.id || funcionIndex} className="space-y-3 rounded-lg border border-primary/40 p-3 dark:border-primary/30">
-                  <div>
-                    <div className="mb-1 text-xs font-semibold uppercase text-gray-500">Función #{funcionIndex + 1}</div>
-                    <div className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold dark:border-gray-700">{funcion.funcion || '-'}</div>
+              {(selectedEvaluation?.funciones || []).map((funcion, funcionIndex) => (
+                <div key={funcion.id || `${funcionIndex}-function`} className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900/20">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Función {funcionIndex + 1}</span>
                   </div>
 
-                  {(funcion.riesgosAsociados || []).map((risk, index) => (
-                    <div key={risk.id || `${funcionIndex}-${index}`} className="space-y-2 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Riesgo #{index + 1}</span>
-                        <Badge value={risk.clasificacion} />
-                      </div>
+                  <div className="mb-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900/30">
+                    {funcion.funcion || '-'}
+                  </div>
 
-                      <div className="grid gap-3 md:grid-cols-2">
-                        {[
-                          ['Riesgo', risk.riesgo],
-                          ['Peligro', risk.peligro],
-                          ['Probabilidad', risk.probabilidad],
-                          ['Consecuencia', risk.consecuencia],
-                          ['Nivel', risk.nivel],
-                          ['Clasificación', risk.clasificacion],
-                        ].map(([label, value]) => (
-                          <div key={label}>
-                            <div className="mb-1 text-xs font-semibold uppercase text-gray-500">{label}</div>
-                            <div className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700">{value ?? '-'}</div>
-                          </div>
-                        ))}
-                        <div className="md:col-span-2">
-                          <div className="mb-1 text-xs font-semibold uppercase text-gray-500">Medidas preventivas</div>
-                          <div className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700">{risk.medidasPrev || '-'}</div>
+                  {(funcion.riesgosAsociados || []).map((risk, index) => {
+                    const catalogDisplayValues = getCatalogDisplayValues(risk)
+                    const nivelNumerico = risk.nivel ?? calculateRiskLevel(risk.probabilidad, risk.consecuencia)
+                    const clasificacion = risk.clasificacion || classifyRisk(Number(nivelNumerico) || 0)
+
+                    return (
+                      <div key={risk.id || `${funcionIndex}-${index}`} className="space-y-2 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Riesgo #{index + 1}</span>
+                          <Badge value={clasificacion} />
                         </div>
-                        <div className="md:col-span-2">
-                          <div className="mb-1 text-xs font-semibold uppercase text-gray-500">Acciones</div>
-                          <div className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700">{risk.acciones || '-'}</div>
-                        </div>
-                        <div className="md:col-span-2">
-                          <div className="mb-1 text-xs font-semibold uppercase text-gray-500">Recursos</div>
-                          <div className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700">{risk.recursos || '-'}</div>
-                        </div>
-                        <div className="grid gap-3 md:col-span-2 md:grid-cols-3">
+
+                        <div className="grid gap-3 md:grid-cols-2">
                           {[
-                            ['Fecha de cumplimiento', formatDate(risk.fechaCumplimiento)],
-                            ['Responsable', risk.responsable],
-                            ['Estado', risk.estado],
+                            ['Riesgo', risk.riesgo],
+                            ['Peligro', risk.peligro],
+                            ['Probabilidad', getProbabilidadDisplay(risk.probabilidad)],
+                            ['Consecuencia', getConsecuenciaDisplay(risk.consecuencia)],
+                            ['Nivel de Riesgo', getNivelRiesgoDisplay(nivelNumerico)],
+                            ['Clasificación', clasificacion],
                           ].map(([label, value]) => (
                             <div key={label}>
                               <div className="mb-1 text-xs font-semibold uppercase text-gray-500">{label}</div>
-                              <div className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700">{value || '-'}</div>
+                              <div className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700">{value ?? '-'}</div>
                             </div>
                           ))}
+                          <div className="md:col-span-2">
+                            <div className="mb-1 text-xs font-semibold uppercase text-gray-500">Medidas preventivas</div>
+                            <div className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700">{catalogDisplayValues.medidaPreventiva}</div>
+                          </div>
+                          <div className="md:col-span-2">
+                            <div className="mb-1 text-xs font-semibold uppercase text-gray-500">Acciones</div>
+                            <div className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700">{catalogDisplayValues.accion}</div>
+                          </div>
+                          <div className="md:col-span-2">
+                            <div className="mb-1 text-xs font-semibold uppercase text-gray-500">Recursos</div>
+                            <div className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700">{catalogDisplayValues.recurso}</div>
+                          </div>
+                          <div className="grid gap-3 md:col-span-2 md:grid-cols-3">
+                            {[
+                              ['Fecha de cumplimiento', formatDate(risk.fechaCumplimiento)],
+                              ['Responsable principal', catalogDisplayValues.responsable],
+                              ['Responsables de apoyo', (risk.responsablesApoyo || []).length > 0
+                                ? (risk.responsablesApoyo || []).map((item) => item.nombre).join(', ')
+                                : 'Sin responsables de apoyo'],
+                              ['Estado', risk.estado],
+                            ].map(([label, value]) => (
+                              <div key={label}>
+                                <div className="mb-1 text-xs font-semibold uppercase text-gray-500">{label}</div>
+                                <div className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700">{value || '-'}</div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ))}
             </section>

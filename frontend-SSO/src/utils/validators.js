@@ -48,11 +48,11 @@ export const validateMatrizForm = (values) => {
         if (!required(item.peligroId)) rowErrors.peligroId = 'Seleccione un peligro'
         if (!required(item.probabilidad)) rowErrors.probabilidad = 'Seleccione una probabilidad'
         if (!required(item.consecuencia)) rowErrors.consecuencia = 'Seleccione una consecuencia'
-        if (!required(item.medidasPrev)) rowErrors.medidasPrev = 'Ingrese medidas preventivas'
-        if (!required(item.acciones)) rowErrors.acciones = 'Ingrese las acciones'
-        if (!required(item.recursos)) rowErrors.recursos = 'Ingrese los recursos'
+        if (!required(item.medidaPreventivaId)) rowErrors.medidaPreventivaId = 'Seleccione una medida preventiva'
+        if (!required(item.accionId)) rowErrors.accionId = 'Seleccione una acción'
+        if (!required(item.recursoId)) rowErrors.recursoId = 'Seleccione un recurso'
+        if (!required(item.responsableId)) rowErrors.responsableId = 'Seleccione un responsable'
         if (!required(item.fechaCumplimiento)) rowErrors.fechaCumplimiento = 'Ingrese la fecha de cumplimiento'
-        if (!required(item.responsable)) rowErrors.responsable = 'Ingrese el responsable'
         if (!required(item.estado)) rowErrors.estado = 'Seleccione un estado'
 
         if (required(item.medidasPrev) && String(item.medidasPrev).length > MAX_LONG_TEXT) {

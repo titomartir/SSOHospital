@@ -25,4 +25,25 @@ export const matrizService = {
     await api.delete(`/matriz/${id}`)
     return true
   },
+
+  async getMedidasByPeligro(peligroId) {
+    const res = await api.get(
+      `/catalogo-riesgo-fisico/peligros/${peligroId}/medidas`
+    )
+    return res.data
+  },
+
+  async getAccionesByPeligroMedida(peligroMedidaId) {
+    const res = await api.get(
+      `/catalogo-riesgo-fisico/peligro-medidas/${peligroMedidaId}/acciones`
+    )
+    return res.data
+  },
+
+  async getConfiguracionByAccion(peligroMedidaAccionId) {
+    const res = await api.get(
+      `/catalogo-riesgo-fisico/acciones/${peligroMedidaAccionId}/configuracion`
+    )
+    return res.data
+  },
 }

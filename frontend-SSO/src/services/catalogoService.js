@@ -2,17 +2,29 @@ import api from './api.js'
 
 export const catalogoService = {
   async getAll() {
-    const [depRes, estructuraRes, riesgoPeligroRes] = await Promise.all([
+    const [depRes, estructuraRes, riesgoPeligroRes, medidasRes, accionesRes, recursosRes, responsablesRes] = await Promise.all([
       api.get('/departamentos'),
       api.get('/catalogo-estructura'),
       api.get('/catalogo-riesgo-peligro'),
+      api.get('/medidas-preventivas'),
+      api.get('/acciones'),
+      api.get('/recursos'),
+      api.get('/responsables'),
     ])
     const riesgoPeligroEstructura = riesgoPeligroRes.data.estructura || []
     const estructura = estructuraRes.data.estructura || []
+    const medidasPreventivas = medidasRes.data.items || []
+    const accionesCatalogo = accionesRes.data.items || []
+    const recursosCatalogo = recursosRes.data.items || []
+    const responsablesCatalogo = responsablesRes.data.items || []
     return {
       departamentos: depRes.data.departamentos,
       estructura,
       riesgoPeligroEstructura,
+      medidasPreventivas,
+      accionesCatalogo,
+      recursosCatalogo,
+      responsablesCatalogo,
       riesgos: riesgoPeligroEstructura.map((r) => r.nombre),
       peligros: riesgoPeligroEstructura.flatMap((r) => r.peligros.map((p) => p.nombre)),
       puestos: estructura.flatMap((sd) =>
@@ -171,5 +183,85 @@ export const catalogoService = {
   async removePeligro(nombre) {
     const res = await api.delete(`/peligros/${encodeURIComponent(nombre)}`)
     return res.data.peligros
+  },
+
+  async getMedidasPreventivas() {
+    const res = await api.get('/medidas-preventivas')
+    return res.data.items || []
+  },
+
+  async addMedidaPreventiva(nombre) {
+    const res = await api.post('/medidas-preventivas', { nombre })
+    return res.data
+  },
+
+  async updateMedidaPreventiva(id, nombre) {
+    const res = await api.put(`/medidas-preventivas/${id}`, { nombre })
+    return res.data
+  },
+
+  async removeMedidaPreventiva(id) {
+    await api.delete(`/medidas-preventivas/${id}`)
+    return true
+  },
+
+  async getAccionesCatalogo() {
+    const res = await api.get('/acciones')
+    return res.data.items || []
+  },
+
+  async addAccionCatalogo(nombre) {
+    const res = await api.post('/acciones', { nombre })
+    return res.data
+  },
+
+  async updateAccionCatalogo(id, nombre) {
+    const res = await api.put(`/acciones/${id}`, { nombre })
+    return res.data
+  },
+
+  async removeAccionCatalogo(id) {
+    await api.delete(`/acciones/${id}`)
+    return true
+  },
+
+  async getRecursosCatalogo() {
+    const res = await api.get('/recursos')
+    return res.data.items || []
+  },
+
+  async addRecursoCatalogo(nombre) {
+    const res = await api.post('/recursos', { nombre })
+    return res.data
+  },
+
+  async updateRecursoCatalogo(id, nombre) {
+    const res = await api.put(`/recursos/${id}`, { nombre })
+    return res.data
+  },
+
+  async removeRecursoCatalogo(id) {
+    await api.delete(`/recursos/${id}`)
+    return true
+  },
+
+  async getResponsablesCatalogo() {
+    const res = await api.get('/responsables')
+    return res.data.items || []
+  },
+
+  async addResponsableCatalogo(nombre) {
+    const res = await api.post('/responsables', { nombre })
+    return res.data
+  },
+
+  async updateResponsableCatalogo(id, nombre) {
+    const res = await api.put(`/responsables/${id}`, { nombre })
+    return res.data
+  },
+
+  async removeResponsableCatalogo(id) {
+    await api.delete(`/responsables/${id}`)
+    return true
   },
 }

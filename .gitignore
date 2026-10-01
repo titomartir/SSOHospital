@@ -1,0 +1,39 @@
+# ============================================================
+# SSOHospital - archivos locales que NO deben versionarse
+# ============================================================
+
+# Respaldos locales
+/_backups/
+*.bak
+
+# Reportes temporales/historicos locales
+/REPORT_FINAL.md
+
+# Variables de entorno y credenciales
+.env
+.env.*
+!.env.example
+
+# Dependencias
+node_modules/
+
+# Builds
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Backups y dumps de base de datos
+*.dump
+*.backup
+*.sql.gz
+
+# Temporales
+*.tmp
+*.temp
+
+# Sistema operativo / editores
+.DS_Store
+Thumbs.db

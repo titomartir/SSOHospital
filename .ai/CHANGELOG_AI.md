@@ -1,5 +1,108 @@
 # AI Changelog
 
+## 2026-09-29 (Matriz - Presentación de Probabilidad/Consecuencia/Nivel)
+- Files modified:
+  - frontend-SSO/src/pages/MatrizPage.jsx
+  - .ai/FRONTEND.md
+  - .ai/CHANGELOG_AI.md
+  - .ai/SESSION_SUMMARY.md
+- Backup created:
+  - E:/Backup_SSOHospital/fase_3A_presentacion_prob_cons_nivel_20260929_155251/MatrizPage.jsx.bak
+- Description:
+  - Se agregó mapeo visual en frontend para mostrar Probabilidad y Consecuencia como etiqueta + valor numérico.
+  - Se actualizó la presentación de Nivel de Riesgo a formato `Clasificación (valor)`.
+  - Se aplicó en formulario (crear/editar), detalle, impresión y exportación PDF (flujo de impresión).
+  - Se mantuvo el modelo interno numérico y sin cambios en payload persistido.
+- Reason:
+  - Mejorar comprensión visual sin alterar lógica de cálculo ni contrato con backend.
+- Safety constraints applied:
+  - Sin cambios en DB, migraciones, seeds o catálogos backend.
+  - Sin cambios en matrizService.js ni validators.js.
+- Impact:
+  - UX más clara para interpretación de riesgo.
+  - Compatibilidad total con cálculo y clasificación existentes.
+
+## 2026-09-28 (FASE 3A - Corrección integral seed Químico/Biológico/Ergonómico)
+- Files modified:
+  - backend-SSSO/src/db/seed_riesgos_quimicos_biologicos_ergonomicos.sql
+  - .ai/DATABASE.md
+  - .ai/CHANGELOG_AI.md
+  - .ai/SESSION_SUMMARY.md
+- Backup created:
+  - E:/Backup_SSOHospital/seed_riesgos_quimicos_biologicos_ergonomicos_2026-09-28_pre_fase3a.sql
+- Description:
+  - Se auditó el seed completo comparando catálogos declarados vs elementos usados en relaciones de `peligro_medidas`, `peligro_medida_acciones`, `peligro_medida_accion_recursos` y `peligro_medida_accion_responsables`.
+  - Se detectaron faltantes por coincidencia exacta de nombre que impedían completar los JOIN de inserción relacional.
+  - Se agregaron entradas faltantes en catálogos de medidas, acciones, recursos y responsables para preservar la lógica funcional ya definida en las relaciones.
+  - Se verificó cobertura estructural de los 21 peligros objetivo en las cuatro capas de relación.
+- Reason:
+  - Corregir inserciones parciales observadas tras ejecución previa del seed, garantizando reproducibilidad e idempotencia sin rediseñar controles preventivos.
+- Safety constraints applied:
+  - No ejecución del seed corregido contra PostgreSQL.
+  - No uso de DROP/TRUNCATE/DELETE.
+  - No reinicio de contenedores.
+  - Sin cambios en frontend u otros componentes fuera del alcance solicitado.
+- Impact:
+  - Seed preparado para revisión y ejecución manual posterior.
+  - Cadena esperada: Peligro -> Medida -> Acción -> Recurso -> Responsable para los 21 peligros objetivo.
+
+## 2026-09-18 (Cierre documental FASE 5C + FASE 5D)
+- Files modified:
+  - .ai/FRONTEND.md
+  - .ai/CHANGELOG_AI.md
+  - .ai/SESSION_SUMMARY.md
+  - .ai/ROADMAP.md
+  - .ai/TODO.md
+  - .ai/DECISIONS.md
+  - .ai/DATABASE.md
+- Description:
+  - Se registró que FASE 5C quedó completa, recuperada y validada.
+  - Se registró que FASE 5D quedó completa y validada funcionalmente.
+  - Se documentó la compatibilidad legacy y del nuevo flujo FK en la matriz.
+  - Se registró la prioridad de presentación: nombre normalizado > texto legacy > '-'.
+  - Se documentó la decisión relacional conceptual para la siguiente evolución y la protección temporal de registros existentes.
+- Reason:
+  - Cerrar documentalmente la validación real sin tocar código ni base de datos.
+- Impact:
+  - El estado funcional queda trazable para la siguiente fase sin iniciar FASE 5E.
+
+## 2026-09-18 (FASE 5D - Presentación normalizada de catálogos en MatrizPage)
+- Files modified:
+  - frontend-SSO/src/pages/MatrizPage.jsx
+  - .ai/CHANGELOG_AI.md
+  - .ai/SESSION_SUMMARY.md
+  - .ai/FRONTEND.md
+  - .ai/ROADMAP.md
+  - .ai/TODO.md
+- Description:
+  - Se aplicó una corrección de lectura únicamente en la vista detalle e impresión de `MatrizPage`.
+  - Los cuatro valores se priorizan en este orden: nombre del catálogo (`*_Nombre`) > texto legacy (`medidasPrev`, `acciones`, `recursos`, `responsable`) > `'-'`.
+  - La lógica de create/update, selects y validación 5C quedó intacta; no se alteró backend ni base de datos.
+- Reason:
+  - Resolver el problema de presentación sin reabrir el alcance de 5C ni tocar el contrato de persistencia.
+- Impact:
+  - La UI refleja mejor los registros con FK nuevas sin romper compatibilidad con registros legacy.
+
+## 2026-09-18 (FASE 5B - Backend matriz FK implementado)
+- Files modified:
+  - backend-SSSO/src/models/matrizModel.js
+  - .ai/CHANGELOG_AI.md
+  - .ai/SESSION_SUMMARY.md
+  - .ai/ROADMAP.md
+  - .ai/TODO.md
+- Description:
+  - Se implementó compatibilidad transitoria para `medidaPreventivaId`, `accionId`, `recursoId` y `responsableId` en el backend de matriz.
+  - CREATE/UPDATE usa dual-write temporal: guarda FK cuando llega ID válido y replica el nombre en los campos legacy (`medidas_prev`, `acciones`, `recursos`, `responsable`).
+  - GET aplica LEFT JOIN hacia `medidas_preventivas`, `acciones`, `recursos` y `responsables`, devolviendo IDs y nombres sin romper la UI legacy que aún usa texto.
+  - Se añadió validación de enteros positivos y existencia real del registro con manejo 400 controlado.
+  - No se modificó esquema de base de datos ni se ejecutaron migraciones.
+- Reason:
+  - Completar FASE 5B sin romper la compatibilidad con el contrato actual mientras los catálogos FK quedan preparados para adopción progresiva.
+- Impact:
+  - Backend matriz acepta legacy text + nuevas FK.
+  - MatrizPage y dashboard siguen funcionando con el contrato legacy actual.
+  - FASE 5C queda pendiente.
+
 ## 2026-07-08
 - Files modified:
   - .github/copilot-instructions.md
@@ -102,3 +205,125 @@
 - Impact:
   - Estructura de repositorio unificada sin cambios de logica funcional.
   - Comandos de desarrollo y Docker quedan alineados al nuevo path frontend.
+
+## 2026-07-08 (Validación final: Arranque Docker y pruebas funcionales)
+- Files modified:
+  - .ai/CHANGELOG_AI.md
+  - .ai/SESSION_SUMMARY.md
+  - REPORT_FINAL.md
+- Description:
+  - Se clonó el repositorio `SSOHospital` (rama `master`) en el host de verificación.
+  - Se ejecutaron diagnósticos de Docker y se levantó el stack de desarrollo con
+    `docker compose -f docker-compose.dev.yml up -d`.
+  - Se validaron endpoints clave: `/api/health` y `/api/departamentos`.
+  - Se verificó acceso al frontend (puerto 5178) y pgAdmin (puerto 5053) — pgAdmin iniciado pero con respuesta parcial en la verificación HTTP.
+- Reason:
+  - Confirmar que el entorno de desarrollo dockerizado arranca y sirve las funcionalidades mínimas.
+- Impact:
+  - Estado operativo principal: Backend, frontend y base de datos levantados en contenedores Docker.
+  - No se realizaron cambios en código de aplicación ni en contratos API.
+
+## 2026-09-17 (Fase 2B - Preparación de migración catálogos independientes)
+- Files created:
+  - backend-SSSO/src/db/migrate_catalogos_independientes.sql
+  - backend-SSSO/src/db/rollback_catalogos_independientes.sql
+- Files modified:
+  - backend-SSSO/src/db/initdb/02_run_migrations.sh
+  - docker-compose.dev.yml
+  - backend-SSSO/package.json
+  - .ai/DATABASE.md
+  - .ai/DEVOPS.md
+  - .ai/DECISIONS.md
+  - .ai/CHANGELOG_AI.md
+  - .ai/SESSION_SUMMARY.md
+- Description:
+  - Se preparó una migración SQL para crear cuatro catálogos independientes:
+    - medidas_preventivas
+    - acciones
+    - recursos
+    - responsables
+  - Se agregaron columnas FK nulas en matriz_evaluacion_detalles:
+    - medida_preventiva_id, accion_id, recurso_id, responsable_id
+  - Se creó rollback dedicado para revertir exclusivamente los elementos nuevos.
+  - Se integró la migración en el bootstrap de instalaciones nuevas.
+- Safety constraints applied:
+  - No ejecución de SQL en PostgreSQL.
+  - No cambios en frontend.
+  - No cambios en backend funcional.
+  - No eliminación de columnas textuales actuales (medidas_prev, acciones, recursos, responsable).
+  - No alteración de catálogos existentes (sub_direcciones, departamentos, servicios, puestos, funciones, riesgos, peligros).
+- Backup reference:
+  - E:/Backup_SSOHospital/Pre_Migraciones/SSO_pre_catalogos_2026-09-17_13-35-03.dump
+  - SHA256: 146099406E0EDCF436F181C38E12C5CD740D45890A610217D5AFF7B25BBDB660
+- Impact:
+  - Solo preparación de artefactos de migración y documentación.
+  - Migración aún NO aplicada.
+
+## 2026-09-17 (Fase 3A - Backend CRUD catálogos independientes)
+- Files created:
+  - backend-SSSO/src/models/medidaPreventivaModel.js
+  - backend-SSSO/src/models/accionModel.js
+  - backend-SSSO/src/models/recursoModel.js
+  - backend-SSSO/src/models/responsableModel.js
+  - backend-SSSO/src/controllers/medidaPreventivaController.js
+  - backend-SSSO/src/controllers/accionController.js
+  - backend-SSSO/src/controllers/recursoController.js
+  - backend-SSSO/src/controllers/responsableController.js
+  - backend-SSSO/src/routes/medidaPreventivaRoutes.js
+  - backend-SSSO/src/routes/accionRoutes.js
+  - backend-SSSO/src/routes/recursoRoutes.js
+  - backend-SSSO/src/routes/responsableRoutes.js
+- Files modified:
+  - backend-SSSO/server.js
+  - .ai/BACKEND.md
+  - .ai/API.md
+  - .ai/DATABASE.md
+  - .ai/CHANGELOG_AI.md
+  - .ai/SESSION_SUMMARY.md
+- Description:
+  - Se implementó el CRUD backend/API para los cuatro catálogos independientes con arquitectura route -> controller -> model.
+  - Se añadieron validaciones de entrada para `id` y `nombre` y manejo de errores 400/404/409/500.
+  - Se registraron endpoints nuevos en `server.js`:
+    - /api/medidas-preventivas
+    - /api/acciones
+    - /api/recursos
+    - /api/responsables
+- Safety constraints applied:
+  - Sin cambios de frontend.
+  - Sin cambios en matrizModel.js.
+  - Sin alteración de contratos existentes fuera de endpoints nuevos.
+- Impact:
+  - Disponibles endpoints CRUD para gestionar catálogos independientes desde backend.
+  - Queda pendiente fase posterior para integrar los FK nuevos en el flujo de matriz.
+
+## 2026-09-17 (Fase 4A - Frontend integración Catálogos)
+- Files modified:
+  - frontend-SSO/src/services/catalogoService.js
+  - frontend-SSO/src/context/DataContext.jsx
+  - frontend-SSO/src/pages/CatalogosPage.jsx
+  - .ai/FRONTEND.md
+  - .ai/BACKEND.md
+  - .ai/CHANGELOG_AI.md
+  - .ai/SESSION_SUMMARY.md
+  - .ai/TODO.md
+- Description:
+  - Se integraron en CatalogosPage los cuatro catálogos independientes:
+    - Medidas Preventivas
+    - Acciones
+    - Recursos
+    - Responsables
+  - Se extendió `catalogoService` para consumir CRUD de:
+    - /api/medidas-preventivas
+    - /api/acciones
+    - /api/recursos
+    - /api/responsables
+  - Se extendió `DataContext` con estado/acciones para esos catálogos y validación frontend de nombre (required, trim, no vacío, max 255).
+  - Se mantuvo el patrón visual y funcional existente (secciones, botones, edición inline, confirmación de eliminación, toasts).
+- Scope constraints respected:
+  - Sin cambios en MatrizPage ni flujo de creación/edición de evaluaciones.
+  - Sin cambios en matrizService, matrizModel, controladores o rutas de matriz.
+  - Sin cambios de esquema o datos en BD.
+  - Sin dependencias entre los cuatro nuevos catálogos (siguen independientes).
+- Impact:
+  - Fase 4A implementada en código.
+  - Pendiente validación visual/funcional manual por usuario.

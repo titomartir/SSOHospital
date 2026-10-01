@@ -89,6 +89,8 @@ Source template: backend-SSSO/.env.example
 - npm run db:migrate-matriz-bloques
 - npm run db:migrate-matriz-maestro-detalle
 - npm run db:migrate-matriz-funciones
+- npm run db:migrate-catalogos-independientes
+- npm run db:rollback-catalogos-independientes
 - rollback variants available in package scripts.
 
 ## CI/CD
@@ -118,6 +120,17 @@ Source template: backend-SSSO/.env.example
 3. Start backend.
 4. Start frontend.
 5. Validate /api/health and key pages.
+
+## Phase 2B Bootstrap Integration (Prepared)
+- docker-compose.dev.yml now mounts:
+  - ./backend-SSSO/src/db/migrate_catalogos_independientes.sql -> /docker-entrypoint-initdb.d/09_migrate_catalogos_independientes.sql
+- backend-SSSO/src/db/initdb/02_run_migrations.sh now executes:
+  - /docker-entrypoint-initdb.d/migrations/migrate_catalogos_independientes.sql
+
+Important scope note:
+- This affects only fresh PostgreSQL initialization paths.
+- Existing running databases are not altered unless migration SQL is explicitly executed.
+- No SQL was executed during this phase.
 
 ## Cross References
 - Data model evolution: DATABASE.md

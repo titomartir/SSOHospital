@@ -31,6 +31,10 @@
   - funcion
   - riesgo
   - peligro
+  - medidaPreventiva
+  - accion
+  - recurso
+  - responsable
   - planificacion
   - matriz
 - Tree controllers:
@@ -93,6 +97,21 @@ Implemented in dashboardModel:
 - Error handling and validation are distributed, not centralized.
 - No rate limiting, auth middleware, or input schema validation library.
 - Legacy and modern matrix schemas coexist in migration history.
+
+## Phase 3A Status
+- Implemented in backend:
+  - CRUD /api/medidas-preventivas
+  - CRUD /api/acciones
+  - CRUD /api/recursos
+  - CRUD /api/responsables
+- Not implemented in this phase:
+  - Frontend integration for the four new catalogs.
+  - matrizModel.js transition logic to consume *_id columns.
+
+## Phase 4A Cross-Status
+- Frontend integration for the four independent catalogs is now implemented in Catalogos module.
+- Matrix backend flow remains unchanged and still supports legacy text fields.
+- FK columns in `matriz_evaluacion_detalles` are available but not yet consumed by matrix frontend/backend payload flow in this phase.
 
 ## Cross References
 - Endpoint catalog: API.md

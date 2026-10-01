@@ -63,10 +63,46 @@
 - Per-function risk blocks.
 - Validation integration with validateMatrizForm.
 - Detail view and print/export support.
+- 2026-09-29 (presentación):
+  - Probabilidad se muestra como `Muy baja..Muy alta (1..5)`.
+  - Consecuencia se muestra como `Leve..Mortal / incapacitante (1..5)`.
+  - Nivel de riesgo se muestra como `Clasificación (valor)`.
+  - El cálculo interno permanece sin cambios (`nivel = probabilidad * consecuencia`) y la clasificación conserva umbrales existentes.
+  - Aplicado en crear/editar, detalle e impresión/PDF.
+- FASE 5C: completa, recuperada y validada.
+- FASE 5D: completa y validada funcionalmente.
+- Legacy compatibility validated:
+  - evaluations with FK NULL still render `medidasPrev`, `acciones`, `recursos`, `responsable`.
+  - display priority is: normalized name > legacy text > `'-'`.
+- FK flow validated end-to-end:
+  - Catalog -> Select -> ID -> API -> FK -> JOIN -> normalized name -> detail view.
+- Update flow validated for evaluations with multiple functions and multiple associated risks, including persistence after UPDATE.
+- Presentation-only changes applied in detail/print rendering; create/edit flow remains intact.
 
 ### CatalogosPage.jsx
 - Full hierarchical catalog management.
 - Handles selection/editing/deletion for organizational and risk catalogs.
+
+## Phase 4A Status - Independent Catalogs UI
+- Implemented in Catalogos module:
+  - Medidas Preventivas
+  - Acciones
+  - Recursos
+  - Responsables
+- Integration pattern:
+  - Reused existing DataContext + catalogoService + CatalogosPage sections.
+  - No new page or parallel architecture introduced.
+- Functional scope implemented:
+  - GET/POST/PUT/DELETE from CatalogosPage for the four independent catalogs.
+  - Frontend validation for nombre: required, trim, non-empty, max 255.
+  - Backend error messaging surfaced via toast (including 409 conflicts).
+- Explicitly not modified in this phase:
+  - MatrizPage.jsx
+  - matrizService.js
+  - Matrix creation/editing flow.
+- Data model transition status:
+  - Legacy text fields still used by matrix frontend flow.
+  - New FK columns exist in DB but are not yet consumed by MatrizPage.
 
 ## Reusable Components
 - UI primitives: Button, InputField, SelectField, Modal, Badge, Card, DataTable, Loader.

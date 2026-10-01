@@ -14,6 +14,11 @@ import riesgoRoutes from './src/routes/riesgoRoutes.js'
 import matrizRoutes from './src/routes/matrizRoutes.js'
 import planificacionRoutes from './src/routes/planificacionRoutes.js'
 import dashboardRoutes from './src/routes/dashboardRoutes.js'
+import medidaPreventivaRoutes from './src/routes/medidaPreventivaRoutes.js'
+import accionRoutes from './src/routes/accionRoutes.js'
+import recursoRoutes from './src/routes/recursoRoutes.js'
+import responsableRoutes from './src/routes/responsableRoutes.js'
+import catalogoRiesgoFisicoRoutes from './src/routes/catalogoRiesgoFisicoRoutes.js'
 
 dotenv.config()
 
@@ -37,6 +42,11 @@ app.use('/api/riesgos', riesgoRoutes)
 app.use('/api/matriz', matrizRoutes)
 app.use('/api/planificacion', planificacionRoutes)
 app.use('/api/dashboard', dashboardRoutes)
+app.use('/api/medidas-preventivas', medidaPreventivaRoutes)
+app.use('/api/acciones', accionRoutes)
+app.use('/api/recursos', recursoRoutes)
+app.use('/api/responsables', responsableRoutes)
+app.use('/api/catalogo-riesgo-fisico', catalogoRiesgoFisicoRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {

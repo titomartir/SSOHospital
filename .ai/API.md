@@ -1,3 +1,92 @@
+## New Endpoints - Independent Catalogs (Phase 3A)
+
+### GET /api/medidas-preventivas
+ - 200: `{ items: [{ id, nombre }] }`
+
+### POST /api/medidas-preventivas
+ - body: `{ nombre }`
+ - 201: `{ id, nombre }`
+ - 400: invalid input
+ - 409: duplicate `nombre`
+
+### PUT /api/medidas-preventivas/:id
+ - body: `{ nombre }`
+ - 200: `{ id, nombre }`
+ - 400: invalid id/body
+ - 404: not found
+ - 409: duplicate `nombre`
+
+### DELETE /api/medidas-preventivas/:id
+ - 200: `{ message: 'Medida preventiva eliminada' }`
+ - 400: invalid id
+ - 404: not found
+ - 409: record referenced by matrix detail
+
+### GET /api/acciones
+ - 200: `{ items: [{ id, nombre }] }`
+
+### POST /api/acciones
+ - body: `{ nombre }`
+ - 201: `{ id, nombre }`
+ - 400: invalid input
+ - 409: duplicate `nombre`
+
+### PUT /api/acciones/:id
+ - body: `{ nombre }`
+ - 200: `{ id, nombre }`
+ - 400: invalid id/body
+ - 404: not found
+ - 409: duplicate `nombre`
+
+### DELETE /api/acciones/:id
+ - 200: `{ message: 'Acción eliminada' }`
+ - 400: invalid id
+ - 404: not found
+ - 409: record referenced by matrix detail
+
+### GET /api/recursos
+ - 200: `{ items: [{ id, nombre }] }`
+
+### POST /api/recursos
+ - body: `{ nombre }`
+ - 201: `{ id, nombre }`
+ - 400: invalid input
+ - 409: duplicate `nombre`
+
+### PUT /api/recursos/:id
+ - body: `{ nombre }`
+ - 200: `{ id, nombre }`
+ - 400: invalid id/body
+ - 404: not found
+ - 409: duplicate `nombre`
+
+### DELETE /api/recursos/:id
+ - 200: `{ message: 'Recurso eliminado' }`
+ - 400: invalid id
+ - 404: not found
+ - 409: record referenced by matrix detail
+
+### GET /api/responsables
+ - 200: `{ items: [{ id, nombre }] }`
+
+### POST /api/responsables
+ - body: `{ nombre }`
+ - 201: `{ id, nombre }`
+ - 400: invalid input
+ - 409: duplicate `nombre`
+
+### PUT /api/responsables/:id
+ - body: `{ nombre }`
+ - 200: `{ id, nombre }`
+ - 400: invalid id/body
+ - 404: not found
+ - 409: duplicate `nombre`
+
+### DELETE /api/responsables/:id
+ - 200: `{ message: 'Responsable eliminado' }`
+ - 400: invalid id
+ - 404: not found
+ - 409: record referenced by matrix detail
 # API Documentation
 
 ## Base

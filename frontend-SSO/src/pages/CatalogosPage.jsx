@@ -29,6 +29,18 @@ const CatalogosPage = () => {
     addFuncion,
     updateFuncion,
     removeFuncion,
+    addMedidaPreventiva,
+    updateMedidaPreventiva,
+    removeMedidaPreventiva,
+    addAccionCatalogo,
+    updateAccionCatalogo,
+    removeAccionCatalogo,
+    addRecursoCatalogo,
+    updateRecursoCatalogo,
+    removeRecursoCatalogo,
+    addResponsableCatalogo,
+    updateResponsableCatalogo,
+    removeResponsableCatalogo,
   } = useData()
 
   const [selectedSubDireccionId, setSelectedSubDireccionId] = useState(null)
@@ -44,6 +56,10 @@ const CatalogosPage = () => {
   const [nuevoRiesgo, setNuevoRiesgo] = useState('')
   const [nuevoPuesto, setNuevoPuesto] = useState('')
   const [nuevaFuncion, setNuevaFuncion] = useState('')
+  const [nuevaMedidaPreventiva, setNuevaMedidaPreventiva] = useState('')
+  const [nuevaAccionCatalogo, setNuevaAccionCatalogo] = useState('')
+  const [nuevoRecursoCatalogo, setNuevoRecursoCatalogo] = useState('')
+  const [nuevoResponsableCatalogo, setNuevoResponsableCatalogo] = useState('')
 
   const [editingSubDireccionId, setEditingSubDireccionId] = useState(null)
   const [editingSubDireccionNombre, setEditingSubDireccionNombre] = useState('')
@@ -64,6 +80,14 @@ const CatalogosPage = () => {
   const [editingFuncionId, setEditingFuncionId] = useState(null)
   const [editingFuncionNombre, setEditingFuncionNombre] = useState('')
   const [editingFuncionPuestoId, setEditingFuncionPuestoId] = useState(null)
+  const [editingMedidaPreventivaId, setEditingMedidaPreventivaId] = useState(null)
+  const [editingMedidaPreventivaNombre, setEditingMedidaPreventivaNombre] = useState('')
+  const [editingAccionCatalogoId, setEditingAccionCatalogoId] = useState(null)
+  const [editingAccionCatalogoNombre, setEditingAccionCatalogoNombre] = useState('')
+  const [editingRecursoCatalogoId, setEditingRecursoCatalogoId] = useState(null)
+  const [editingRecursoCatalogoNombre, setEditingRecursoCatalogoNombre] = useState('')
+  const [editingResponsableCatalogoId, setEditingResponsableCatalogoId] = useState(null)
+  const [editingResponsableCatalogoNombre, setEditingResponsableCatalogoNombre] = useState('')
 
   const subDirecciones = useMemo(() => catalogos.estructura || [], [catalogos.estructura])
   const selectedSubDireccion = useMemo(
@@ -109,6 +133,10 @@ const CatalogosPage = () => {
     [puestosDelServicio, selectedPuestoId]
   )
   const funcionesDelPuesto = useMemo(() => selectedPuesto?.funciones || [], [selectedPuesto])
+  const medidasPreventivas = useMemo(() => catalogos.medidasPreventivas || [], [catalogos.medidasPreventivas])
+  const accionesCatalogo = useMemo(() => catalogos.accionesCatalogo || [], [catalogos.accionesCatalogo])
+  const recursosCatalogo = useMemo(() => catalogos.recursosCatalogo || [], [catalogos.recursosCatalogo])
+  const responsablesCatalogo = useMemo(() => catalogos.responsablesCatalogo || [], [catalogos.responsablesCatalogo])
 
   const onAddSubDireccion = async () => {
     await addSubDireccion(nuevaSubDireccion)
@@ -150,6 +178,26 @@ const CatalogosPage = () => {
     setNuevaFuncion('')
   }
 
+  const onAddMedidaPreventiva = async () => {
+    await addMedidaPreventiva(nuevaMedidaPreventiva)
+    setNuevaMedidaPreventiva('')
+  }
+
+  const onAddAccionCatalogo = async () => {
+    await addAccionCatalogo(nuevaAccionCatalogo)
+    setNuevaAccionCatalogo('')
+  }
+
+  const onAddRecursoCatalogo = async () => {
+    await addRecursoCatalogo(nuevoRecursoCatalogo)
+    setNuevoRecursoCatalogo('')
+  }
+
+  const onAddResponsableCatalogo = async () => {
+    await addResponsableCatalogo(nuevoResponsableCatalogo)
+    setNuevoResponsableCatalogo('')
+  }
+
   const onSaveRiesgoEdit = async () => {
     await updateRiesgo(editingRiesgoId, editingRiesgoNombre)
     setEditingRiesgoId(null)
@@ -175,6 +223,30 @@ const CatalogosPage = () => {
     setEditingFuncionId(null)
     setEditingFuncionNombre('')
     setEditingFuncionPuestoId(null)
+  }
+
+  const onSaveMedidaPreventivaEdit = async () => {
+    await updateMedidaPreventiva(editingMedidaPreventivaId, editingMedidaPreventivaNombre)
+    setEditingMedidaPreventivaId(null)
+    setEditingMedidaPreventivaNombre('')
+  }
+
+  const onSaveAccionCatalogoEdit = async () => {
+    await updateAccionCatalogo(editingAccionCatalogoId, editingAccionCatalogoNombre)
+    setEditingAccionCatalogoId(null)
+    setEditingAccionCatalogoNombre('')
+  }
+
+  const onSaveRecursoCatalogoEdit = async () => {
+    await updateRecursoCatalogo(editingRecursoCatalogoId, editingRecursoCatalogoNombre)
+    setEditingRecursoCatalogoId(null)
+    setEditingRecursoCatalogoNombre('')
+  }
+
+  const onSaveResponsableCatalogoEdit = async () => {
+    await updateResponsableCatalogo(editingResponsableCatalogoId, editingResponsableCatalogoNombre)
+    setEditingResponsableCatalogoId(null)
+    setEditingResponsableCatalogoNombre('')
   }
 
   const onSaveSubDireccionEdit = async () => {
@@ -240,6 +312,26 @@ const CatalogosPage = () => {
   const onDeleteFuncion = async (id) => {
     if (!window.confirm('¿Eliminar función?')) return
     await removeFuncion(id)
+  }
+
+  const onDeleteMedidaPreventiva = async (id) => {
+    if (!window.confirm('¿Eliminar medida preventiva?')) return
+    await removeMedidaPreventiva(id)
+  }
+
+  const onDeleteAccionCatalogo = async (id) => {
+    if (!window.confirm('¿Eliminar acción?')) return
+    await removeAccionCatalogo(id)
+  }
+
+  const onDeleteRecursoCatalogo = async (id) => {
+    if (!window.confirm('¿Eliminar recurso?')) return
+    await removeRecursoCatalogo(id)
+  }
+
+  const onDeleteResponsableCatalogo = async (id) => {
+    if (!window.confirm('¿Eliminar responsable?')) return
+    await removeResponsableCatalogo(id)
   }
 
   return (
@@ -802,6 +894,256 @@ const CatalogosPage = () => {
           ))}
         </div>
       </section>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-4 lg:grid-cols-2">
+        <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Medidas Preventivas</h2>
+          <div className="mb-3 flex gap-2">
+            <InputField
+              placeholder="Nueva medida preventiva"
+              value={nuevaMedidaPreventiva}
+              onChange={(e) => setNuevaMedidaPreventiva(e.target.value)}
+              maxLength={255}
+            />
+            <Button onClick={onAddMedidaPreventiva}>Agregar</Button>
+          </div>
+          <div className="space-y-2">
+            {medidasPreventivas.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">Sin registros</p>
+            ) : medidasPreventivas.map((item) => {
+              const isEditing = editingMedidaPreventivaId === item.id
+              return (
+                <div key={item.id} className="rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-700">
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <InputField
+                        value={editingMedidaPreventivaNombre}
+                        onChange={(e) => setEditingMedidaPreventivaNombre(e.target.value)}
+                        maxLength={255}
+                      />
+                      <div className="flex gap-2">
+                        <Button className="px-2 py-1 text-xs" onClick={onSaveMedidaPreventivaEdit}>Guardar</Button>
+                        <Button
+                          variant="secondary"
+                          className="px-2 py-1 text-xs"
+                          onClick={() => setEditingMedidaPreventivaId(null)}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm text-gray-700 dark:text-gray-200">{item.nombre}</span>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          className="px-2 py-1 text-xs"
+                          onClick={() => {
+                            setEditingMedidaPreventivaId(item.id)
+                            setEditingMedidaPreventivaNombre(item.nombre)
+                          }}
+                        >
+                          Editar
+                        </Button>
+                        <Button variant="danger" className="px-2 py-1 text-xs" onClick={() => onDeleteMedidaPreventiva(item.id)}>
+                          Eliminar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Acciones</h2>
+          <div className="mb-3 flex gap-2">
+            <InputField
+              placeholder="Nueva acción"
+              value={nuevaAccionCatalogo}
+              onChange={(e) => setNuevaAccionCatalogo(e.target.value)}
+              maxLength={255}
+            />
+            <Button onClick={onAddAccionCatalogo}>Agregar</Button>
+          </div>
+          <div className="space-y-2">
+            {accionesCatalogo.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">Sin registros</p>
+            ) : accionesCatalogo.map((item) => {
+              const isEditing = editingAccionCatalogoId === item.id
+              return (
+                <div key={item.id} className="rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-700">
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <InputField
+                        value={editingAccionCatalogoNombre}
+                        onChange={(e) => setEditingAccionCatalogoNombre(e.target.value)}
+                        maxLength={255}
+                      />
+                      <div className="flex gap-2">
+                        <Button className="px-2 py-1 text-xs" onClick={onSaveAccionCatalogoEdit}>Guardar</Button>
+                        <Button
+                          variant="secondary"
+                          className="px-2 py-1 text-xs"
+                          onClick={() => setEditingAccionCatalogoId(null)}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm text-gray-700 dark:text-gray-200">{item.nombre}</span>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          className="px-2 py-1 text-xs"
+                          onClick={() => {
+                            setEditingAccionCatalogoId(item.id)
+                            setEditingAccionCatalogoNombre(item.nombre)
+                          }}
+                        >
+                          Editar
+                        </Button>
+                        <Button variant="danger" className="px-2 py-1 text-xs" onClick={() => onDeleteAccionCatalogo(item.id)}>
+                          Eliminar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Recursos</h2>
+          <div className="mb-3 flex gap-2">
+            <InputField
+              placeholder="Nuevo recurso"
+              value={nuevoRecursoCatalogo}
+              onChange={(e) => setNuevoRecursoCatalogo(e.target.value)}
+              maxLength={255}
+            />
+            <Button onClick={onAddRecursoCatalogo}>Agregar</Button>
+          </div>
+          <div className="space-y-2">
+            {recursosCatalogo.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">Sin registros</p>
+            ) : recursosCatalogo.map((item) => {
+              const isEditing = editingRecursoCatalogoId === item.id
+              return (
+                <div key={item.id} className="rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-700">
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <InputField
+                        value={editingRecursoCatalogoNombre}
+                        onChange={(e) => setEditingRecursoCatalogoNombre(e.target.value)}
+                        maxLength={255}
+                      />
+                      <div className="flex gap-2">
+                        <Button className="px-2 py-1 text-xs" onClick={onSaveRecursoCatalogoEdit}>Guardar</Button>
+                        <Button
+                          variant="secondary"
+                          className="px-2 py-1 text-xs"
+                          onClick={() => setEditingRecursoCatalogoId(null)}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm text-gray-700 dark:text-gray-200">{item.nombre}</span>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          className="px-2 py-1 text-xs"
+                          onClick={() => {
+                            setEditingRecursoCatalogoId(item.id)
+                            setEditingRecursoCatalogoNombre(item.nombre)
+                          }}
+                        >
+                          Editar
+                        </Button>
+                        <Button variant="danger" className="px-2 py-1 text-xs" onClick={() => onDeleteRecursoCatalogo(item.id)}>
+                          Eliminar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Responsables</h2>
+          <div className="mb-3 flex gap-2">
+            <InputField
+              placeholder="Nuevo responsable"
+              value={nuevoResponsableCatalogo}
+              onChange={(e) => setNuevoResponsableCatalogo(e.target.value)}
+              maxLength={255}
+            />
+            <Button onClick={onAddResponsableCatalogo}>Agregar</Button>
+          </div>
+          <div className="space-y-2">
+            {responsablesCatalogo.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">Sin registros</p>
+            ) : responsablesCatalogo.map((item) => {
+              const isEditing = editingResponsableCatalogoId === item.id
+              return (
+                <div key={item.id} className="rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-700">
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <InputField
+                        value={editingResponsableCatalogoNombre}
+                        onChange={(e) => setEditingResponsableCatalogoNombre(e.target.value)}
+                        maxLength={255}
+                      />
+                      <div className="flex gap-2">
+                        <Button className="px-2 py-1 text-xs" onClick={onSaveResponsableCatalogoEdit}>Guardar</Button>
+                        <Button
+                          variant="secondary"
+                          className="px-2 py-1 text-xs"
+                          onClick={() => setEditingResponsableCatalogoId(null)}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm text-gray-700 dark:text-gray-200">{item.nombre}</span>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          className="px-2 py-1 text-xs"
+                          onClick={() => {
+                            setEditingResponsableCatalogoId(item.id)
+                            setEditingResponsableCatalogoNombre(item.nombre)
+                          }}
+                        >
+                          Editar
+                        </Button>
+                        <Button variant="danger" className="px-2 py-1 text-xs" onClick={() => onDeleteResponsableCatalogo(item.id)}>
+                          Eliminar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </section>
       </div>
     </div>
   )

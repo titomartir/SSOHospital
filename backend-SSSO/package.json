@@ -20,6 +20,8 @@
     "db:rollback-matriz-maestro-detalle": "docker exec -i sso_postgres_db psql -U appuser -d SSO < src/db/rollback_migrate_matriz_maestro_detalle.sql",
     "db:migrate-matriz-funciones": "docker exec -i sso_postgres_db psql -U appuser -d SSO < src/db/migrate_matriz_funciones_jerarquia.sql",
     "db:rollback-matriz-funciones": "docker exec -i sso_postgres_db psql -U appuser -d SSO < src/db/rollback_migrate_matriz_funciones_jerarquia.sql",
+    "db:migrate-catalogos-independientes": "docker exec -i sso_postgres_db psql -U appuser -d SSO < src/db/migrate_catalogos_independientes.sql",
+    "db:rollback-catalogos-independientes": "docker exec -i sso_postgres_db psql -U appuser -d SSO < src/db/rollback_catalogos_independientes.sql",
     "db:migrate-puestos-funciones": "docker exec -i sso_postgres_db psql -U appuser -d SSO < src/db/migrate_puestos_funciones_relacion.sql",
     "db:migrate-puestos-servicio": "docker exec -i sso_postgres_db psql -U appuser -d SSO < src/db/migrate_puestos_funciones_relacion.sql",
     "docker:up": "docker compose up -d",

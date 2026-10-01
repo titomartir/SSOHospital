@@ -1,0 +1,15 @@
+{
+  "watch": [
+    "server.js",
+    "src"
+  ],
+  "ext": "js,mjs,cjs,json",
+  "ignore": [
+    "node_modules",
+    ".git",
+    "_backups"
+  ],
+  "legacyWatch": true,
+  "pollingInterval": 2000,
+  "delay": "500ms"
+}
