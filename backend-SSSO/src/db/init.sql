@@ -159,9 +159,7 @@ INSERT INTO peligros (nombre, riesgo_id) VALUES
 ('Sensibilizantes', (SELECT id FROM riesgos WHERE nombre = 'Riesgo Químico')),
 ('Toxicos/Asfixiantes', (SELECT id FROM riesgos WHERE nombre = 'Riesgo Químico')),
 ('Virus', (SELECT id FROM riesgos WHERE nombre = 'Riesgo Biológico')),
-('Bacterias', (SELECT id FROM riesgos WHERE nombre = 'Riesgo Biológico')),
-('Hongos', (SELECT id FROM riesgos WHERE nombre = 'Riesgo Biológico')),
-('Parásitos', (SELECT id FROM riesgos WHERE nombre = 'Riesgo Biológico'))
+('Bacterias', (SELECT id FROM riesgos WHERE nombre = 'Riesgo Biológico'))
 ON CONFLICT (nombre) DO NOTHING;
 
 -- Insertar Datos Semilla de Matriz de Riesgos

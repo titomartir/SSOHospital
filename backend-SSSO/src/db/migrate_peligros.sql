@@ -46,9 +46,7 @@ INSERT INTO peligros (nombre, riesgo_id) VALUES
 ('Sensibilizantes', (SELECT id FROM riesgos WHERE nombre = 'Riesgo Químico')),
 ('Toxicos/Asfixiantes', (SELECT id FROM riesgos WHERE nombre = 'Riesgo Químico')),
 ('Virus', (SELECT id FROM riesgos WHERE nombre = 'Riesgo Biológico')),
-('Bacterias', (SELECT id FROM riesgos WHERE nombre = 'Riesgo Biológico')),
-('Hongos', (SELECT id FROM riesgos WHERE nombre = 'Riesgo Biológico')),
-('Parásitos', (SELECT id FROM riesgos WHERE nombre = 'Riesgo Biológico'))
+('Bacterias', (SELECT id FROM riesgos WHERE nombre = 'Riesgo Biológico'))
 ON CONFLICT (nombre) DO NOTHING;
 
 SELECT setval('peligros_id_seq', COALESCE((SELECT MAX(id)+1 FROM peligros), 1), false);

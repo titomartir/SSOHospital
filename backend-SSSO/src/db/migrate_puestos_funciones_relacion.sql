@@ -20,28 +20,55 @@ CREATE TABLE IF NOT EXISTS funciones (
 );
 
 -- Semillas de puestos con servicio
-INSERT INTO puestos (nombre) VALUES
-('Enfermero/a'),
-('Médico intensivista'),
-('Técnico de laboratorio'),
-('Técnico eléctrico')
-ON CONFLICT DO NOTHING;
+-- Se insertan directamente con servicio_id para respetar la relacion Puesto -> Servicio.
 
--- Asignar servicio a cada puesto
-UPDATE puestos SET servicio_id = (SELECT id FROM servicios WHERE nombre = 'Triage')
-WHERE nombre = 'Enfermero/a' AND servicio_id IS NULL;
+INSERT INTO puestos (nombre, servicio_id)
+SELECT 'Enfermero/a', s.id
+FROM servicios s
+WHERE s.nombre = 'Triage'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM puestos p
+    WHERE p.nombre = 'Enfermero/a'
+      AND p.servicio_id = s.id
+  );
 
-UPDATE puestos SET servicio_id = (SELECT id FROM servicios WHERE nombre = 'Cuidados críticos')
-WHERE nombre = 'Médico intensivista' AND servicio_id IS NULL;
+INSERT INTO puestos (nombre, servicio_id)
+SELECT 'Médico intensivista', s.id
+FROM servicios s
+WHERE s.nombre = 'Cuidados críticos'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM puestos p
+    WHERE p.nombre = 'Médico intensivista'
+      AND p.servicio_id = s.id
+  );
 
-UPDATE puestos SET servicio_id = (SELECT id FROM servicios WHERE nombre = 'Procesamiento de muestras')
-WHERE nombre = 'Técnico de laboratorio' AND servicio_id IS NULL;
+INSERT INTO puestos (nombre, servicio_id)
+SELECT 'Técnico de laboratorio', s.id
+FROM servicios s
+WHERE s.nombre = 'Procesamiento de muestras'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM puestos p
+    WHERE p.nombre = 'Técnico de laboratorio'
+      AND p.servicio_id = s.id
+  );
 
-UPDATE puestos SET servicio_id = (SELECT id FROM servicios WHERE nombre = 'Mantenimiento eléctrico')
-WHERE nombre = 'Técnico eléctrico' AND servicio_id IS NULL;
+INSERT INTO puestos (nombre, servicio_id)
+SELECT 'Técnico eléctrico', s.id
+FROM servicios s
+WHERE s.nombre = 'Mantenimiento eléctrico'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM puestos p
+    WHERE p.nombre = 'Técnico eléctrico'
+      AND p.servicio_id = s.id
+  );
 
--- Salvaguarda: asignar primer servicio disponible a puestos sin servicio
-UPDATE puestos SET servicio_id = (SELECT id FROM servicios ORDER BY id LIMIT 1)
+-- Salvaguarda para datos preexistentes: asignar primer servicio disponible a puestos sin servicio
+UPDATE puestos
+SET servicio_id = (SELECT id FROM servicios ORDER BY id LIMIT 1)
 WHERE servicio_id IS NULL;
 
 ALTER TABLE puestos ALTER COLUMN servicio_id SET NOT NULL;
@@ -71,11 +98,37 @@ BEGIN
   END IF;
 END $$;
 
-INSERT INTO funciones (nombre, puesto_id) VALUES
-('Atención directa a pacientes', (SELECT id FROM puestos WHERE nombre = 'Enfermero/a')),
-('Procedimientos invasivos', (SELECT id FROM puestos WHERE nombre = 'Médico intensivista')),
-('Procesamiento de muestras biológicas', (SELECT id FROM puestos WHERE nombre = 'Técnico de laboratorio')),
-('Inspección de instalaciones', (SELECT id FROM puestos WHERE nombre = 'Técnico eléctrico'))
+-- Semillas de funciones asociadas al puesto correcto dentro de su servicio
+INSERT INTO funciones (nombre, puesto_id)
+SELECT 'Atención directa a pacientes', p.id
+FROM puestos p
+INNER JOIN servicios s ON s.id = p.servicio_id
+WHERE p.nombre = 'Enfermero/a'
+  AND s.nombre = 'Triage'
+ON CONFLICT (puesto_id, nombre) DO NOTHING;
+
+INSERT INTO funciones (nombre, puesto_id)
+SELECT 'Procedimientos invasivos', p.id
+FROM puestos p
+INNER JOIN servicios s ON s.id = p.servicio_id
+WHERE p.nombre = 'Médico intensivista'
+  AND s.nombre = 'Cuidados críticos'
+ON CONFLICT (puesto_id, nombre) DO NOTHING;
+
+INSERT INTO funciones (nombre, puesto_id)
+SELECT 'Procesamiento de muestras biológicas', p.id
+FROM puestos p
+INNER JOIN servicios s ON s.id = p.servicio_id
+WHERE p.nombre = 'Técnico de laboratorio'
+  AND s.nombre = 'Procesamiento de muestras'
+ON CONFLICT (puesto_id, nombre) DO NOTHING;
+
+INSERT INTO funciones (nombre, puesto_id)
+SELECT 'Inspección de instalaciones', p.id
+FROM puestos p
+INNER JOIN servicios s ON s.id = p.servicio_id
+WHERE p.nombre = 'Técnico eléctrico'
+  AND s.nombre = 'Mantenimiento eléctrico'
 ON CONFLICT (puesto_id, nombre) DO NOTHING;
 
 SELECT setval('puestos_id_seq', COALESCE((SELECT MAX(id)+1 FROM puestos), 1), false);
